@@ -58,6 +58,29 @@ async function getAssetInfo(client: ConnectClient, symbol: string) {
   }
 }
 
+// Convert a human-readable decimal string (e.g. "1.234") to base units string using token decimals.
+// Uses BigInt so we don't lose precision for large amounts or many decimals.
+function toBaseUnitsString(amountStr: string, decimals: number) {
+  // Normalize input
+  const cleaned = (amountStr ?? '').trim()
+  if (!cleaned) return '0'
+
+  const parts = cleaned.split('.')
+  const intPart = parts[0] || '0'
+  const fracPart = parts[1] || ''
+
+  // If decimals is 0, return intPart as-is
+  if (decimals === 0) return BigInt(intPart).toString()
+
+  // Take up to `decimals` digits of the fractional part (no rounding)
+  const fracNormalized = (fracPart + '0'.repeat(decimals)).slice(0, decimals)
+
+  const intBig = BigInt(intPart || '0')
+  const fracBig = BigInt(fracNormalized || '0')
+  const base = intBig * (10n ** BigInt(decimals)) + fracBig
+  return base.toString()
+}
+
 export default function PayPage() {
   const [searchParams] = useSearchParams()
   const to     = searchParams.get('to')     ?? ''
@@ -107,12 +130,16 @@ export default function PayPage() {
       setHexCoinId(asset.coinId)
 
       setStatus('sending')
-      const humanAmount = parseFloat(amount)
+      // Convert the human-readable amount string into base units (integer string)
+      const decimals = asset.decimals ?? 8
+      const amountBase = toBaseUnitsString(amount, decimals)
 
+      // Send the integer base-units amount to Sphere. Using the base-units string avoids
+      // floating point precision issues where e.g. "5" could be interpreted as 5 base units.
       const result = await client.intent('send', {
         to:     `@${to}`,
         coinId: asset.coinId,
-        amount: humanAmount,
+        amount: amountBase,
       })
 
       setTxInfo(JSON.stringify(result, null, 2))
