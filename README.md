@@ -1,29 +1,29 @@
-# ⚡ UCT Pay Link
+# UCT Pay Link
 
-Generator payment link & QR code untuk ekosistem Unicity Network.
+Payment link and QR code generator for the Unicity Network ecosystem.
 
-## Apa ini?
+## What is this?
 
-App web sederhana yang memungkinkan siapapun:
-- **Membuat link pembayaran** seperti `https://app-kamu.com/pay?to=alice&amount=1000000&coin=UCT`
-- **Membuat QR code** dari link tersebut — bisa di-scan langsung
-- **Membayar** via Sphere Wallet Extension hanya dengan satu klik
+A simple web application that enables anyone to:
+- **Create payment links** like `https://app-you.com/pay?to=alice&amount=1000000&coin=UCT`
+- **Generate QR codes** from those links — can be scanned directly
+- **Pay** via Sphere Wallet Extension with just one click
 
 ---
 
-## Cara Kerja
+## How it Works
 
 ```
 [Generator Form]          [Payment Link]            [Pay Page]
-  Isi nametag      →   ?to=alice&amount=          →   Connect ke
-  Isi jumlah           1000000&coin=UCT               Sphere Wallet
-  Klik Generate        (bisa dibagikan)               Klik "Bayar"
-                                                       Transaksi ✅
+  Enter nametag      →   ?to=alice&amount=          →   Connect to
+  Enter amount           1000000&coin=UCT               Sphere Wallet
+  Click Generate         (can be shared)                Click "Pay"
+                                                        Transaction OK
 ```
 
 ---
 
-## Setup & Jalankan
+## Setup & Run
 
 ### 1. Install dependencies
 
@@ -31,27 +31,27 @@ App web sederhana yang memungkinkan siapapun:
 npm install
 ```
 
-### 2. Jalankan development server
+### 2. Run development server
 
 ```bash
 npm run dev
 ```
 
-Buka `http://localhost:5173` di browser.
+Open `http://localhost:5173` in your browser.
 
 ---
 
-## Struktur Proyek
+## Project Structure
 
 ```
 uct-pay-link/
 ├── src/
 │   ├── App.tsx              ← Router & navbar
-│   ├── App.css              ← Semua styling
+│   ├── App.css              ← All styling
 │   ├── main.tsx             ← Entry point
 │   └── pages/
-│       ├── GeneratorPage.tsx  ← Form buat payment link + QR code
-│       └── PayPage.tsx        ← Halaman pembayaran (dibuka via link)
+│       ├── GeneratorPage.tsx  ← Form to create payment link + QR code
+│       └── PayPage.tsx        ← Payment page (opened via link)
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -60,63 +60,63 @@ uct-pay-link/
 
 ---
 
-## API Sphere SDK yang Dipakai
+## Sphere SDK API Used
 
-### ConnectClient (dari `@unicitylabs/sphere-sdk/connect`)
+### ConnectClient (from `@unicitylabs/sphere-sdk/connect`)
 
 ```typescript
-// Membuat "jembatan" antara dApp kita dan Sphere Wallet Extension
+// Create a "bridge" between our dApp and Sphere Wallet Extension
 const client = new ConnectClient({
   transport: ExtensionTransport.forClient(),
   dapp: { name: 'UCT Pay Link', description: '...', url: location.origin },
 })
 
-// Connect ke wallet (muncul popup persetujuan)
+// Connect to wallet (shows approval popup)
 const { identity } = await client.connect()
 
-// Kirim intent pembayaran ke wallet
+// Send payment intent to wallet
 await client.intent('send', {
-  recipient: '@alice',   // nametag penerima
+  recipient: '@alice',   // receiver nametag
   amount: 1000000,       // base units (1 UCT = 1,000,000)
-  coinId: 'UCT',         // jenis token
+  coinId: 'UCT',         // token type
 })
 ```
 
-### Format URL Payment Link
+### Payment Link URL Format
 
 ```
-/pay?to=NAMETAG&amount=BASE_UNITS&coin=TOKEN_ID&note=PESAN
+/pay?to=NAMETAG&amount=BASE_UNITS&coin=TOKEN_ID&note=MESSAGE
 ```
 
-| Parameter | Wajib | Keterangan |
-|-----------|-------|------------|
-| `to`      | ✅    | Nametag penerima (tanpa @) |
-| `amount`  | ✅    | Jumlah dalam base units |
-| `coin`    | ✅    | ID token (UCT, dll) |
-| `note`    | ❌    | Pesan opsional |
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `to`      | Yes      | Receiver nametag (without @) |
+| `amount`  | Yes      | Amount in base units |
+| `coin`    | Yes      | Token ID (UCT, etc.) |
+| `note`    | No       | Optional message |
 
 ---
 
-## Cara Test
+## How to Test
 
-1. Install **Sphere Wallet Extension** di Chrome
-2. Buat wallet baru → catat recovery phrase
-3. Klaim nametag (misal `@testalice`)
-4. Minta test token dari faucet di Sphere testnet
-5. Buat payment link di app ini
-6. Buka link tersebut di tab baru
-7. Klik "Bayar" → Sphere Wallet akan popup konfirmasi
+1. Install **Sphere Wallet Extension** in Chrome
+2. Create a new wallet → save recovery phrase
+3. Claim a nametag (e.g., `@testalice`)
+4. Request test tokens from the faucet on Sphere testnet
+5. Create a payment link in this app
+6. Open the link in a new tab
+7. Click "Pay" → Sphere Wallet will show confirmation popup
 
 ---
 
-## Ide Pengembangan Selanjutnya
+## Future Development Ideas
 
-- [ ] History transaksi di halaman penerima
-- [ ] Multi-coin support (UCT + token lain)
-- [ ] Share ke WhatsApp / Telegram langsung
+- [ ] Transaction history on receiver's page
+- [ ] Multi-coin support (UCT + other tokens)
+- [ ] Direct sharing to WhatsApp / Telegram
 - [ ] Dark mode
-- [ ] Deploy ke Vercel / Netlify supaya bisa diakses online
+- [ ] Deploy to Vercel / Netlify for online access
 
 ---
 
-Dibangun dengan React + Vite + TypeScript + @unicitylabs/sphere-sdk
+Built with React + Vite + TypeScript + @unicitylabs/sphere-sdk
