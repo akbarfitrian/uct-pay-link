@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
+  Link2, CheckCircle2, Search, Zap, Globe, AlertTriangle,
+  Copy, Check, ChevronRight, ArrowLeft,
+} from 'lucide-react'
+import {
   ConnectClient,
   SPHERE_NETWORKS,
   type ConnectTransport,
@@ -44,7 +48,7 @@ async function getAssetInfo(client: ConnectClient, symbol: string) {
       : (result as { assets: SphereAsset[] }).assets ?? []
     const match = assets.find(a => a.symbol?.toUpperCase() === symbol.toUpperCase())
     if (match?.coinId) {
-      return { coinId: match.coinId, decimals: match.decimals ?? 16 }
+      return { coinId: match.coinId, decimals: match.decimals ?? 8 }
     }
   } catch { /* fallback */ }
   return {
@@ -57,7 +61,6 @@ async function getAssetInfo(client: ConnectClient, symbol: string) {
 export default function PayPage() {
   const [searchParams] = useSearchParams()
   const to     = searchParams.get('to')     ?? ''
-  // amount sekarang human-readable langsung dari URL (e.g. "5" bukan "5000000")
   const amount = searchParams.get('amount') ?? '0'
   const coin   = searchParams.get('coin')   ?? 'UCT'
   const note   = searchParams.get('note')   ?? ''
@@ -67,6 +70,7 @@ export default function PayPage() {
   const [txInfo,    setTxInfo]    = useState('')
   const [copied,    setCopied]    = useState<string | null>(null)
   const [hexCoinId, setHexCoinId] = useState('')
+  const [txDetailsOpen, setTxDetailsOpen] = useState(false)
 
   const isValidLink    = to.length > 0 && parseFloat(amount) > 0
   const displayAmount  = parseFloat(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })
@@ -103,15 +107,12 @@ export default function PayPage() {
       setHexCoinId(asset.coinId)
 
       setStatus('sending')
-
-      // Konversi dari human-readable ke base units
       const humanAmount = parseFloat(amount)
-      const baseAmount = BigInt(Math.floor(humanAmount * Math.pow(10, asset.decimals)))
 
       const result = await client.intent('send', {
         to:     `@${to}`,
         coinId: asset.coinId,
-        amount: baseAmount,  // ✅ Sekarang dalam base units
+        amount: humanAmount,
       })
 
       setTxInfo(JSON.stringify(result, null, 2))
@@ -128,10 +129,10 @@ export default function PayPage() {
   }
 
   const getButtonText = () => {
-    if (status === 'connecting') return '⏳ Connecting to Sphere...'
-    if (status === 'querying')   return '⏳ Resolving token...'
-    if (status === 'sending')    return '⏳ Sending transaction...'
-    return `⚡ Pay ${displayAmount} ${coin}`
+    if (status === 'connecting') return 'Connecting to Sphere...'
+    if (status === 'querying')   return 'Resolving token...'
+    if (status === 'sending')    return 'Sending transaction...'
+    return `Pay ${displayAmount} ${coin}`
   }
 
   const isLoading = ['connecting', 'querying', 'sending'].includes(status)
@@ -139,7 +140,7 @@ export default function PayPage() {
   if (!isValidLink) {
     return (
       <div className="card text-center">
-        <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔗</p>
+        <Link2 size={32} style={{ marginBottom: '0.5rem', color: 'var(--text-hint)' }} />
         <h2 className="card-title">Invalid link</h2>
         <p className="card-subtitle">Required parameters are missing.</p>
         <Link to="/" className="btn btn-primary" style={{ marginTop: '1rem', textDecoration: 'none' }}>
@@ -152,17 +153,30 @@ export default function PayPage() {
   if (status === 'success') {
     return (
       <div className="card text-center">
-        <p style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✅</p>
-        <h2 className="card-title">Payment Successful!</h2>
+        <CheckCircle2 size={48} style={{ marginBottom: '0.5rem', color: '#6EE7B7' }} />
+        <h2 className="card-title">Payment Successful</h2>
         <p className="card-subtitle">{displayAmount} {coin} sent to @{to}</p>
         <div className="alert alert-success">Transaction confirmed on Unicity Network.</div>
         {txInfo && (
-          <details style={{ marginTop: '1rem', textAlign: 'left' }}>
-            <summary>🔍 Transaction response</summary>
-            <pre style={{ fontSize: '0.75rem', background: 'var(--brown-deep)', padding: '0.75rem', borderRadius: '8px', overflow: 'auto', marginTop: '0.5rem', color: 'var(--orange-bright)' }}>
-              {txInfo}
-            </pre>
-          </details>
+          <div style={{ marginTop: '1rem', textAlign: 'left' }}>
+            <button
+              onClick={() => setTxDetailsOpen(!txDetailsOpen)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.3rem',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '0.82rem', color: 'var(--text-hint)', padding: 0
+              }}
+            >
+              <Search size={14} />
+              Transaction response
+              <ChevronRight size={14} style={{ transform: txDetailsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+            </button>
+            {txDetailsOpen && (
+              <pre style={{ fontSize: '0.75rem', background: 'var(--bg-elevated)', padding: '0.75rem', borderRadius: '8px', overflow: 'auto', marginTop: '0.5rem', color: 'var(--indigo)' }}>
+                {txInfo}
+              </pre>
+            )}
+          </div>
         )}
         <Link to="/" className="btn btn-primary" style={{ marginTop: '1.5rem', textDecoration: 'none' }}>
           Create a new payment link
@@ -188,9 +202,9 @@ export default function PayPage() {
           <span className="pay-detail-label">Recipient</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="pay-detail-value">@{to}</span>
-            <button className="btn btn-outline" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+            <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem' }}
               onClick={() => copyText(`@${to}`, 'to')}>
-              {copied === 'to' ? '✅' : '📋'}
+              {copied === 'to' ? <Check size={13} /> : <Copy size={13} />}
             </button>
           </div>
         </div>
@@ -198,16 +212,16 @@ export default function PayPage() {
           <span className="pay-detail-label">Amount</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="pay-detail-value">{displayAmount} {coin}</span>
-            <button className="btn btn-outline" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+            <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem' }}
               onClick={() => copyText(displayAmount, 'amount')}>
-              {copied === 'amount' ? '✅' : '📋'}
+              {copied === 'amount' ? <Check size={13} /> : <Copy size={13} />}
             </button>
           </div>
         </div>
         {hexCoinId && (
           <div className="pay-detail-row">
             <span className="pay-detail-label">Token ID (hex)</span>
-            <span className="pay-detail-value" style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--orange-bright)', wordBreak: 'break-all' }}>
+            <span className="pay-detail-value" style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--indigo)', wordBreak: 'break-all' }}>
               {hexCoinId}
             </span>
           </div>
@@ -239,45 +253,47 @@ export default function PayPage() {
       )}
 
       {status === 'error' && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-          <strong>Failed: </strong>{errorMsg}
+        <div className="alert alert-error" style={{ marginBottom: '1rem', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+          <span><strong>Failed:</strong> {errorMsg}</span>
         </div>
       )}
 
-      {/* Di dalam Sphere → tombol Pay langsung */}
       {isInsideSphere && (
         <button className="btn btn-green" onClick={handlePay} disabled={isLoading} style={{ marginBottom: '0.75rem' }}>
+          {!isLoading && <Zap size={16} strokeWidth={2.5} />}
           {getButtonText()}
         </button>
       )}
 
-      {/* Di Chrome biasa → arahkan ke Sphere Agent */}
       {!isInsideSphere && (
         <div>
-          <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
-            <strong>Open this link in Sphere Wallet to pay.</strong><br />
-            Click below — Sphere will load this payment page.
+          <div className="alert alert-warning" style={{ marginBottom: '1rem', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+            <span><strong>Open this link in Sphere Wallet to pay.</strong> Click below — Sphere will load this payment page.</span>
           </div>
           <a href={sphereAgentUrl} target="_blank" rel="noreferrer"
             className="btn btn-green"
             style={{ marginBottom: '0.75rem', textDecoration: 'none' }}>
-            🌐 Open in Sphere Wallet
+            <Globe size={16} />
+            Open in Sphere Wallet
           </a>
           <div style={{ marginBottom: '0.75rem' }}>
             <p className="result-label">Or copy Sphere link manually</p>
             <div className="link-box">
               <span className="link-text" style={{ fontSize: '0.76rem' }}>{sphereAgentUrl}</span>
-              <button className="btn btn-outline" style={{ padding: '0.35rem 0.8rem', fontSize: '0.78rem', flexShrink: 0 }}
+              <button className="btn btn-outline" style={{ padding: '0.35rem 0.6rem', flexShrink: 0 }}
                 onClick={() => copyText(sphereAgentUrl, 'agentUrl')}>
-                {copied === 'agentUrl' ? '✅' : '📋'}
+                {copied === 'agentUrl' ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <Link to="/" className="btn btn-outline" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
-        ← Back
+      <Link to="/" className="btn btn-outline" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+        <ArrowLeft size={15} />
+        Back
       </Link>
     </div>
   )
