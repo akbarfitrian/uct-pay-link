@@ -248,7 +248,7 @@ export default function PayPage() {
           )}
           <div className="detail-item">
             <span className="detail-label">Network</span>
-            <span className="detail-value"><span className="network-badge">UCT Mainnet</span></span>
+            <span className="detail-value"><span className="network-badge">Testnet Unicity V2</span></span>
           </div>
         </div>
 
