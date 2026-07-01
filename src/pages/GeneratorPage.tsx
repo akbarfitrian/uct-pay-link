@@ -189,12 +189,12 @@ export default function GeneratorPage() {
               </div>
               <div className="detail-row">
                 <span className="detail-label">Network</span>
-                <span className="detail-value"><span className="badge">UCT Mainnet</span></span>
+                <span className="detail-value"><span className="badge">Testnet Unicity V2</span></span>
               </div>
             </div>
 
             <button className="btn btn-copy" onClick={handleCopy}>
-              {copied ? '✓ Copied' : '📋 Copy Link'}
+              {copied ? 'Copied' : 'Copy Link'}
             </button>
           </div>
         </div>
