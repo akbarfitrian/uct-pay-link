@@ -1,6 +1,6 @@
 /**
  * Cryptocurrency configuration with CoinGecko API mappings
- * UCT dan USDU menggunakan harga default 1 USD tanpa logo
+ * UCT dan USDU menggunakan harga default 1 USD dengan logo abu-abu
  */
 
 export interface Coin {
@@ -20,7 +20,7 @@ export const COINS: Record<string, Coin> = {
     name: 'Unicity Token',
     decimals: 6,
     coingeckoId: null,
-    logo: null,
+    logo: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%239ca3af"/%3E%3C/svg%3E',
     defaultPrice: 1,
   },
   USDU: {
@@ -29,7 +29,7 @@ export const COINS: Record<string, Coin> = {
     name: 'USD Unicity',
     decimals: 6,
     coingeckoId: null,
-    logo: null,
+    logo: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="50" fill="%239ca3af"/%3E%3C/svg%3E',
     defaultPrice: 1,
   },
   USDC: {
