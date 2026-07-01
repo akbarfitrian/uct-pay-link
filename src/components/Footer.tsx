@@ -7,7 +7,7 @@ export default function Footer() {
         <span className="footer-text">Powered by Unicity Labs</span>
         <div className="footer-links">
           <a 
-            href="https://x.com/akbarfitrian" 
+            href="https://x.com/moriganarcy" 
             target="_blank" 
             rel="noreferrer"
             className="footer-link"
