@@ -86,7 +86,7 @@ export default function GeneratorPage() {
           <input
             className="form-input"
             type="text"
-            placeholder="@yourID"
+            placeholder="@"
             value={nametag}
             onChange={(e) => setNametag(e.target.value)}
           />
@@ -146,7 +146,7 @@ export default function GeneratorPage() {
           </label>
           <textarea
             className="form-textarea"
-            placeholder="e.g. Payment for logo design, thank you!"
+            placeholder=""
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
