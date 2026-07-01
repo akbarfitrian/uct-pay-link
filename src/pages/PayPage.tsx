@@ -1,18 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
-  Link2,
-  CheckCircle2,
-  Search,
-  Zap,
-  Globe,
-  AlertTriangle,
-  Copy,
-  Check,
-  ChevronRight,
-  ArrowLeft,
-} from 'lucide-react'
-import {
   ConnectClient,
   SPHERE_NETWORKS,
   type ConnectTransport,
@@ -71,10 +59,7 @@ async function getAssetInfo(client: ConnectClient, symbol: string) {
   }
 }
 
-// Convert a human-readable decimal string (e.g. "1.234") to base units string using token decimals.
-// Uses BigInt so we don't lose precision for large amounts or many decimals.
 function toBaseUnitsString(amountStr: string, decimals: number) {
-  // Normalize input
   const cleaned = (amountStr ?? '').trim()
   if (!cleaned) return '0'
 
@@ -82,10 +67,8 @@ function toBaseUnitsString(amountStr: string, decimals: number) {
   const intPart = parts[0] || '0'
   const fracPart = parts[1] || ''
 
-  // If decimals is 0, return intPart as-is
   if (decimals === 0) return BigInt(intPart).toString()
 
-  // Take up to `decimals` digits of the fractional part (no rounding)
   const fracNormalized = (fracPart + '0'.repeat(decimals)).slice(0, decimals)
 
   const intBig = BigInt(intPart || '0')
@@ -104,9 +87,6 @@ export default function PayPage() {
   const [status, setStatus] = useState<PayStatus>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [txInfo, setTxInfo] = useState('')
-  const [copied, setCopied] = useState<string | null>(null)
-  const [hexCoinId, setHexCoinId] = useState('')
-  const [txDetailsOpen, setTxDetailsOpen] = useState(false)
   const [coinPrice, setCoinPrice] = useState<number | null>(null)
   const [priceError, setPriceError] = useState('')
 
@@ -116,7 +96,6 @@ export default function PayPage() {
   const sphereAgentUrl = `${SPHERE_AGENT_BASE}?url=${encodeURIComponent(window.location.href)}`
   const selectedCoin = COINS[coin]
 
-  // Fetch coin price on mount
   useEffect(() => {
     const fetchPrice = async () => {
       try {
@@ -125,7 +104,6 @@ export default function PayPage() {
         setPriceError('')
       } catch (error) {
         setPriceError('Failed to fetch price')
-        console.error('Price fetch error:', error)
       }
     }
 
@@ -134,17 +112,10 @@ export default function PayPage() {
     }
   }, [coin, isValidLink])
 
-  const copyText = async (text: string, key: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(key)
-    setTimeout(() => setCopied(null), 2000)
-  }
-
   const handlePay = async () => {
     if (!isInsideSphere) return
     setStatus('connecting')
     setErrorMsg('')
-    setHexCoinId('')
 
     try {
       const client = new ConnectClient({
@@ -161,15 +132,11 @@ export default function PayPage() {
 
       setStatus('querying')
       const asset = await getAssetInfo(client, coin)
-      setHexCoinId(asset.coinId)
 
       setStatus('sending')
-      // Convert the human-readable amount string into base units (integer string)
       const decimals = asset.decimals ?? 8
       const amountBase = toBaseUnitsString(amount, decimals)
 
-      // Send the integer base-units amount to Sphere. Using the base-units string avoids
-      // floating point precision issues where e.g. "5" could be interpreted as 5 base units.
       const result = await client.intent('send', {
         to: `@${to}`,
         coinId: asset.coinId,
@@ -181,253 +148,4 @@ export default function PayPage() {
     } catch (err: unknown) {
       setStatus('error')
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.match(/reject|cancel|denied/i)) setErrorMsg('Transaction cancelled.')
-      else if (msg.match(/insufficient|balance/i)) setErrorMsg('Insufficient ' + coin + ' balance.')
-      else if (msg.match(/network|mismatch/i)) setErrorMsg('Wrong network — switch to Unicity Testnet2.')
-      else setErrorMsg(msg)
-    }
-  }
-
-  const getButtonText = () => {
-    if (status === 'connecting') return 'Connecting to Sphere...'
-    if (status === 'querying') return 'Resolving token...'
-    if (status === 'sending') return 'Sending transaction...'
-    return `Pay ${displayAmount} ${coin}`
-  }
-
-  const isLoading = ['connecting', 'querying', 'sending'].includes(status)
-
-  if (!isValidLink) {
-    return (
-      <div className="card text-center">
-        <Link2 size={32} style={{ marginBottom: '0.5rem', color: 'var(--text-hint)' }} />
-        <h2 className="card-title">Invalid link</h2>
-        <p className="card-subtitle">Required parameters are missing.</p>
-        <Link to="/" className="btn btn-primary" style={{ marginTop: '1rem', textDecoration: 'none' }}>
-          Create a new payment link
-        </Link>
-      </div>
-    )
-  }
-
-  if (status === 'success') {
-    return (
-      <div className="card text-center">
-        <CheckCircle2 size={48} style={{ marginBottom: '0.5rem', color: '#6EE7B7' }} />
-        <h2 className="card-title">Payment Successful</h2>
-        <p className="card-subtitle">
-          {displayAmount} {coin} sent to @{to}
-        </p>
-        <div className="alert alert-success">Transaction confirmed on Unicity Network.</div>
-        {txInfo && (
-          <div style={{ marginTop: '1rem', textAlign: 'left' }}>
-            <button
-              onClick={() => setTxDetailsOpen(!txDetailsOpen)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                color: 'var(--text-hint)',
-                padding: 0,
-              }}
-            >
-              <Search size={14} />
-              Transaction response
-              <ChevronRight size={14} style={{ transform: txDetailsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
-            </button>
-            {txDetailsOpen && (
-              <pre
-                style={{
-                  fontSize: '0.75rem',
-                  background: 'var(--bg-elevated)',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  overflow: 'auto',
-                  marginTop: '0.5rem',
-                  color: 'var(--indigo)',
-                }}
-              >
-                {txInfo}
-              </pre>
-            )}
-          </div>
-        )}
-        <Link to="/" className="btn btn-primary" style={{ marginTop: '1.5rem', textDecoration: 'none' }}>
-          Create a new payment link
-        </Link>
-      </div>
-    )
-  }
-
-  return (
-    <div className="card">
-      <h1 className="card-title">Confirm Payment</h1>
-      <p className="card-subtitle">Send {coin} via Sphere Wallet</p>
-
-      <div className="pay-amount-big" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem' }}>
-        {selectedCoin?.logo && (
-          <img
-            src={selectedCoin.logo}
-            alt={coin}
-            style={{ width: '40px', height: '40px', borderRadius: '50%' }}
-          />
-        )}
-        <div>
-          <span className="pay-amount-number">{displayAmount}</span>
-          <span className="pay-amount-coin" style={{ marginLeft: '0.4rem' }}>
-            {coin}
-          </span>
-        </div>
-      </div>
-
-      {coinPrice && coinPrice > 0 && (
-        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          ≈ ${(parseFloat(amount) * coinPrice).toLocaleString('en-US', { maximumFractionDigits: 2 })}
-        </p>
-      )}
-
-      <hr className="divider" />
-
-      <div style={{ marginBottom: '1.25rem' }}>
-        <div className="pay-detail-row">
-          <span className="pay-detail-label">Recipient</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span className="pay-detail-value">@{to}</span>
-            <button
-              className="btn btn-outline"
-              style={{ padding: '0.2rem 0.5rem' }}
-              onClick={() => copyText(`@${to}`, 'to')}
-            >
-              {copied === 'to' ? <Check size={13} /> : <Copy size={13} />}
-            </button>
-          </div>
-        </div>
-        <div className="pay-detail-row">
-          <span className="pay-detail-label">Amount</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span className="pay-detail-value">
-              {displayAmount} {coin}
-            </span>
-            <button
-              className="btn btn-outline"
-              style={{ padding: '0.2rem 0.5rem' }}
-              onClick={() => copyText(displayAmount, 'amount')}
-            >
-              {copied === 'amount' ? <Check size={13} /> : <Copy size={13} />}
-            </button>
-          </div>
-        </div>
-        {coinPrice && (
-          <div className="pay-detail-row">
-            <span className="pay-detail-label">Price per {coin}</span>
-            <span className="pay-detail-value">${coinPrice.toLocaleString('en-US', { maximumFractionDigits: 8 })}</span>
-          </div>
-        )}
-        {hexCoinId && (
-          <div className="pay-detail-row">
-            <span className="pay-detail-label">Token ID (hex)</span>
-            <span
-              className="pay-detail-value"
-              style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--indigo)', wordBreak: 'break-all' }}
-            >
-              {hexCoinId}
-            </span>
-          </div>
-        )}
-        {note && (
-          <div className="pay-detail-row">
-            <span className="pay-detail-label">Note</span>
-            <span className="pay-detail-value" style={{ fontStyle: 'italic' }}>
-              "{note}"
-            </span>
-          </div>
-        )}
-        <div className="pay-detail-row">
-          <span className="pay-detail-label">Network</span>
-          <span className="pay-detail-value">
-            <span className="badge badge-gray">Unicity Testnet2</span>
-          </span>
-        </div>
-      </div>
-
-      {isLoading && (
-        <div className="status-steps" style={{ marginBottom: '1rem' }}>
-          <div className={`status-step ${status === 'connecting' ? 'active' : ['querying', 'sending'].includes(status) ? 'done' : ''}`}>
-            <div className="step-dot" /> Connecting to Sphere Wallet
-          </div>
-          <div className={`status-step ${status === 'querying' ? 'active' : status === 'sending' ? 'done' : ''}`}>
-            <div className="step-dot" /> Resolving {coin} token
-          </div>
-          <div className={`status-step ${status === 'sending' ? 'active' : ''}`}>
-            <div className="step-dot" /> Sending to Unicity Network
-          </div>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
-          <span>
-            <strong>Failed:</strong> {errorMsg}
-          </span>
-        </div>
-      )}
-
-      {isInsideSphere && (
-        <button className="btn btn-green" onClick={handlePay} disabled={isLoading} style={{ marginBottom: '0.75rem' }}>
-          {!isLoading && <Zap size={16} strokeWidth={2.5} />}
-          {getButtonText()}
-        </button>
-      )}
-
-      {!isInsideSphere && (
-        <div>
-          <div className="alert alert-warning" style={{ marginBottom: '1rem', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
-            <span>
-              <strong>Open this link in Sphere Wallet to pay.</strong> Click below — Sphere will load this payment page.
-            </span>
-          </div>
-          <a
-            href={sphereAgentUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-green"
-            style={{ marginBottom: '0.75rem', textDecoration: 'none' }}
-          >
-            <Globe size={16} />
-            Open in Sphere Wallet
-          </a>
-          <div style={{ marginBottom: '0.75rem' }}>
-            <p className="result-label">Or copy Sphere link manually</p>
-            <div className="link-box">
-              <span className="link-text" style={{ fontSize: '0.76rem' }}>
-                {sphereAgentUrl}
-              </span>
-              <button
-                className="btn btn-outline"
-                style={{ padding: '0.35rem 0.6rem', flexShrink: 0 }}
-                onClick={() => copyText(sphereAgentUrl, 'agentUrl')}
-              >
-                {copied === 'agentUrl' ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Link
-        to="/"
-        className="btn btn-outline"
-        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-      >
-        <ArrowLeft size={15} />
-        Back
-      </Link>
-    </div>
-  )
-}
+      if (msg.match(/reject|cancel|denied/i)) setErrorMsg('Transaction cancelled.')\n      else if (msg.match(/insufficient|balance/i)) setErrorMsg('Insufficient ' + coin + ' balance.')\n      else if (msg.match(/network|mismatch/i)) setErrorMsg('Wrong network — switch to Unicity Testnet2.')\n      else setErrorMsg(msg)\n    }\n  }\n\n  const getButtonText = () => {\n    if (status === 'connecting') return 'Connecting to Sphere...'\n    if (status === 'querying') return 'Resolving token...'\n    if (status === 'sending') return 'Sending transaction...'\n    return `Pay ${displayAmount} ${coin}`\n  }\n\n  const isLoading = ['connecting', 'querying', 'sending'].includes(status)\n\n  if (!isValidLink) {\n    return (\n      <div className=\"pay-container\">\n        <div className=\"pay-card\">\n          <h2 className=\"pay-title\">Invalid Link</h2>\n          <p className=\"pay-subtitle\">Required parameters are missing.</p>\n          <Link to=\"/\" className=\"btn btn-primary\" style={{ textDecoration: 'none' }}>\n            Create a new payment link\n          </Link>\n        </div>\n      </div>\n    )\n  }\n\n  if (status === 'success') {\n    return (\n      <div className=\"pay-container\">\n        <div className=\"pay-card pay-card-success\">\n          <div className=\"success-icon\">✓</div>\n          <h2 className=\"pay-title\">Payment Successful</h2>\n          <p className=\"pay-subtitle\">\\n            {displayAmount} {coin} sent to @{to}\n          </p>\n          \n          {txInfo && (\n            <div className=\"tx-details\">\n              <details>\n                <summary className=\"tx-summary\">View transaction details</summary>\n                <pre className=\"tx-info\">{txInfo}</pre>\n              </details>\n            </div>\n          )}\n          \n          <Link to=\"/\" className=\"btn btn-primary\" style={{ textDecoration: 'none', marginTop: '1.5rem' }}>\n            Create a new payment link\n          </Link>\n        </div>\n      </div>\n    )\n  }\n\n  return (\n    <div className=\"pay-container\">\n      <div className=\"pay-card\">\n        <h2 className=\"pay-title\">Confirm Payment</h2>\n        <p className=\"pay-subtitle\">Send {coin} via Sphere Wallet</p>\n\n        {/* Amount Display */}\n        <div className=\"amount-display\">\n          {selectedCoin?.logo && (\n            <img src={selectedCoin.logo} alt={coin} className=\"amount-logo\" />\n          )}\n          <div className=\"amount-content\">\n            <span className=\"amount-value\">{displayAmount}</span>\n            <span className=\"amount-symbol\">{coin}</span>\n          </div>\n        </div>\n\n        {coinPrice && coinPrice > 0 && (\n          <p className=\"amount-usd\">\n            ≈ ${(parseFloat(amount) * coinPrice).toLocaleString('en-US', { maximumFractionDigits: 2 })} USD\n          </p>\n        )}\n\n        {/* Payment Details */}\n        <div className=\"payment-details\">\n          <div className=\"detail-item\">\n            <span className=\"detail-label\">Recipient</span>\n            <span className=\"detail-value\">@{to}</span>\n          </div>\n          <div className=\"detail-item\">\n            <span className=\"detail-label\">Amount</span>\n            <span className=\"detail-value\">{displayAmount} {coin}</span>\n          </div>\n          {coinPrice && (\n            <div className=\"detail-item\">\n              <span className=\"detail-label\">Price per {coin}</span>\n              <span className=\"detail-value\">${coinPrice.toLocaleString('en-US', { maximumFractionDigits: 8 })}</span>\n            </div>\n          )}\n          {note && (\n            <div className=\"detail-item\">\n              <span className=\"detail-label\">Note</span>\n              <span className=\"detail-value detail-note\">\"{note}\"</span>\n            </div>\n          )}\n          <div className=\"detail-item\">\n            <span className=\"detail-label\">Network</span>\n            <span className=\"detail-value\"><span className=\"network-badge\">UCT Mainnet</span></span>\n          </div>\n        </div>\n\n        {/* Status Steps */}\n        {isLoading && (\n          <div className=\"status-steps\">\n            <div className={`status-step ${status === 'connecting' ? 'active' : ['querying', 'sending'].includes(status) ? 'done' : ''}`}>\n              <div className=\"step-dot\"></div>\n              <span>Connecting to Sphere Wallet</span>\n            </div>\n            <div className={`status-step ${status === 'querying' ? 'active' : status === 'sending' ? 'done' : ''}`}>\n              <div className=\"step-dot\"></div>\n              <span>Resolving {coin} token</span>\n            </div>\n            <div className={`status-step ${status === 'sending' ? 'active' : ''}`}>\n              <div className=\"step-dot\"></div>\n              <span>Sending to Unicity Network</span>\n            </div>\n          </div>\n        )}\n\n        {/* Error Alert */}\n        {status === 'error' && (\n          <div className=\"alert alert-error\">\n            <strong>Failed:</strong> {errorMsg}\n          </div>\n        )}\n\n        {/* Action Buttons */}\n        {isInsideSphere && (\n          <button className=\"btn btn-primary btn-pay\" onClick={handlePay} disabled={isLoading}>\n            {getButtonText()}\n          </button>\n        )}\n\n        {!isInsideSphere && (\n          <>\n            <div className=\"alert alert-warning\">\n              <strong>Open this link in Sphere Wallet to pay.</strong> Click below — Sphere will load this payment page.\n            </div>\n            <a href={sphereAgentUrl} target=\"_blank\" rel=\"noreferrer\" className=\"btn btn-primary\">\n              Open in Sphere Wallet\n            </a>\n            <div className=\"sphere-link-section\">\n              <p className=\"sphere-link-label\">Or copy Sphere link manually:</p>\n              <div className=\"copy-box\">\n                <span className=\"copy-text\">{sphereAgentUrl}</span>\n                <button className=\"copy-btn\" onClick={() => navigator.clipboard.writeText(sphereAgentUrl)}>\n                  Copy\n                </button>\n              </div>\n            </div>\n          </>\n        )}\n\n        <Link to=\"/\" className=\"btn btn-secondary\">\n          ← Back\n        </Link>\n      </div>\n    </div>\n  )\n}\n
