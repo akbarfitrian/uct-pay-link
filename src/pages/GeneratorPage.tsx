@@ -79,14 +79,14 @@ export default function GeneratorPage() {
     <div className="generator-container">
       {/* Left side - Form */}
       <div className="form-section">
-        <h1 className="form-title">Crypto Payment</h1>
+        <h1 className="form-title">Request Payment</h1>
 
         <div className="form-group">
-          <label className="form-label">Recipient (UCT Nametag)</label>
+          <label className="form-label">Recipient (User ID)</label>
           <input
             className="form-input"
             type="text"
-            placeholder="@yournametag"
+            placeholder="@yourID"
             value={nametag}
             onChange={(e) => setNametag(e.target.value)}
           />
