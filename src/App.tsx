@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { Zap } from 'lucide-react'
 import GeneratorPage from './pages/GeneratorPage'
 import PayPage from './pages/PayPage'
+import Footer from './components/Footer'
 import './App.css'
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
           <Route path="/pay" element={<PayPage />} />
         </Routes>
       </main>
+
+      <Footer />
     </BrowserRouter>
   )
 }
