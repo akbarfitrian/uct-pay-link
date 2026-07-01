@@ -115,7 +115,6 @@ await client.intent('send', {
 - [ ] Multi-coin support (UCT + other tokens)
 - [ ] Direct sharing to WhatsApp / Telegram
 - [ ] Dark mode
-- [ ] Deploy to Vercel / Netlify for online access
 
 ---
 
