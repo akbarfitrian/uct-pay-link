@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { Zap } from 'lucide-react'
 import GeneratorPage from './pages/GeneratorPage'
 import PayPage from './pages/PayPage'
 import Footer from './components/Footer'
@@ -9,8 +8,7 @@ function App() {
   return (
     <BrowserRouter>
       <nav className="navbar">
-        <Link to="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}>
-          <Zap size={18} strokeWidth={2.5} />
+        <Link to="/" className="logo" style={{ textDecoration: 'none' }}>
           UCT Pay Link
         </Link>
         <div className="nav-links">
