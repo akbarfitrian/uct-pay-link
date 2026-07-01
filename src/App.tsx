@@ -9,7 +9,7 @@ function App() {
     <BrowserRouter>
       <nav className="navbar">
         <Link to="/" className="logo" style={{ textDecoration: 'none' }}>
-          UCT Pay Link
+          Unipay Link
         </Link>
         <div className="nav-links">
           <Link to="/">Create Link</Link>
