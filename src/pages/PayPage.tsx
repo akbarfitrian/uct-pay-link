@@ -168,7 +168,7 @@ export default function PayPage() {
         <div className="pay-card">
           <h2 className="pay-title">Invalid Link</h2>
           <p className="pay-subtitle">Required parameters are missing.</p>
-          <Link to="/" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+          <Link to="/app" className="btn btn-primary" style={{ textDecoration: 'none' }}>
             Create a new payment link
           </Link>
         </div>
@@ -195,7 +195,7 @@ export default function PayPage() {
             </div>
           )}
 
-          <Link to="/" className="btn btn-primary" style={{ textDecoration: 'none', marginTop: '1.5rem' }}>
+          <Link to="/app" className="btn btn-primary" style={{ textDecoration: 'none', marginTop: '1.5rem' }}>
             Create a new payment link
           </Link>
         </div>
@@ -304,7 +304,7 @@ export default function PayPage() {
           </>
         )}
 
-        <Link to="/" className="btn btn-secondary">
+        <Link to="/app" className="btn btn-secondary">
           ← Back
         </Link>
       </div>

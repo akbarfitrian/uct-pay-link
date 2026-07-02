@@ -1,0 +1,468 @@
+/* Landing page — reuses the color/shadow/radius tokens defined in App.css :root */
+
+.landing {
+  width: 100%;
+  background: var(--bg-page);
+}
+
+/* ---------- Nav ---------- */
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 2.5rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-default);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.landing-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.landing-logo-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.landing-logo span {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.landing-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.landing-nav-links > a:not(.landing-btn) {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.landing-nav-links > a:not(.landing-btn):hover {
+  color: var(--primary-blue);
+}
+
+/* ---------- Buttons ---------- */
+.landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  white-space: nowrap;
+}
+
+.landing-btn-primary {
+  background: var(--ink);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.landing-btn-primary:hover {
+  background: var(--primary-blue-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-blue);
+}
+
+.landing-btn-nav {
+  padding: 0.55rem 1.15rem;
+  font-size: 0.85rem;
+}
+
+.landing-btn-lg {
+  padding: 0.95rem 1.9rem;
+  font-size: 1rem;
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 5.5rem 2.5rem 6rem;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary-blue);
+  background: var(--primary-blue-tint);
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+}
+
+.hero-headline {
+  font-size: clamp(2.3rem, 4.4vw, 3.4rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 1.4rem;
+}
+
+.hero-subhead {
+  font-size: 1.1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 34rem;
+  margin-bottom: 2.25rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Hero visual: a mock payment-link card, grounded in the real product */
+.hero-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+}
+
+.hero-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 320px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.6rem;
+  animation: floatCard 6s ease-in-out infinite;
+}
+
+.hero-card-back {
+  position: absolute;
+  z-index: 1;
+  width: 88%;
+  height: 92%;
+  top: 22px;
+  right: -14px;
+  background: var(--primary-blue-tint);
+  border-radius: var(--radius-lg);
+  transform: rotate(4deg);
+}
+
+.hero-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.hero-card-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hero-card-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--success);
+  background: var(--success-tint);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.hero-card-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.hero-card-figure {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.hero-card-coin {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hero-card-address {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-hint);
+  margin-bottom: 1.25rem;
+}
+
+.hero-card-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin-bottom: 1.25rem;
+}
+
+.hero-card-qr {
+  display: flex;
+  justify-content: center;
+}
+
+.hero-card-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  width: 112px;
+  height: 112px;
+  padding: 8px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.hero-card-qr-grid span {
+  border-radius: 1px;
+  background: var(--border-default);
+}
+
+.hero-card-qr-grid span.on {
+  background: var(--ink);
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-card { animation: none; }
+}
+
+/* ---------- Scroll reveal ---------- */
+.features,
+.roadmap {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.features.is-visible,
+.roadmap.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Features ---------- */
+.features {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2.5rem 5rem;
+}
+
+.section-heading {
+  text-align: center;
+  max-width: 42rem;
+  margin: 0 auto 3rem;
+}
+
+.section-heading h2 {
+  font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  margin-bottom: 0.75rem;
+}
+
+.section-heading p {
+  color: var(--text-secondary);
+  font-size: 1.02rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-blue-tint-2);
+}
+
+.feature-icon {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--primary-blue-tint);
+  color: var(--primary-blue);
+  margin-bottom: 1.2rem;
+}
+
+.feature-card h3 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.55rem;
+  letter-spacing: -0.01em;
+}
+
+.feature-card p {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ---------- Roadmap ---------- */
+.roadmap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2.5rem 6rem;
+}
+
+.roadmap-card {
+  display: flex;
+  gap: 1.75rem;
+  align-items: flex-start;
+  background: var(--bg-card);
+  border: 1.5px dashed var(--primary-blue-tint-2);
+  border-radius: var(--radius-lg);
+  padding: 2.75rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.roadmap-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--ink);
+  color: #fff;
+}
+
+.roadmap-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary-blue);
+  background: var(--primary-blue-tint);
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  margin-bottom: 0.85rem;
+}
+
+.roadmap-copy h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-bottom: 0.65rem;
+}
+
+.roadmap-copy p {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 46rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 3rem 1.5rem 3.5rem;
+    text-align: center;
+  }
+
+  .hero-subhead {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-visual {
+    min-height: 300px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .roadmap-card {
+    flex-direction: column;
+    text-align: left;
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-nav {
+    padding: 1rem 1.25rem;
+  }
+
+  .landing-nav-links {
+    gap: 0.9rem;
+  }
+
+  .landing-nav-links > a:not(.landing-btn) {
+    display: none;
+  }
+
+  .landing-logo span {
+    font-size: 0.88rem;
+  }
+
+  .features,
+  .roadmap {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
