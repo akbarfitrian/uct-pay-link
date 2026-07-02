@@ -112,9 +112,9 @@ await client.intent('send', {
 ## Future Development Ideas
 
 - [ ] Transaction history on receiver's page
-- [ ] Multi-coin support (UCT + other tokens)
 - [ ] Direct sharing to WhatsApp / Telegram
-- [ ] Dark mode
+- [ ] Bulk generation request payment
+- [ ] AI Agent integration
 
 ---
 
