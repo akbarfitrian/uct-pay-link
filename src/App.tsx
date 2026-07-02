@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage'
 import GeneratorPage from './pages/GeneratorPage'
 import PayPage from './pages/PayPage'
 import Footer from './components/Footer'
+import ThemeToggle from './components/ThemeToggle'
 import './App.css'
 
 /** Shared chrome (nav + footer) for the working app screens */
@@ -14,11 +15,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo.png" alt="UCT Pay Link" className="logo-icon" />
           UNICITY PAY LINK
         </Link>
-        <div className="nav-links">
-          <Link to="/app">Create Link</Link>
-          <a href="https://sphere.unicity.network" target="_blank" rel="noreferrer">
-            Sphere Wallet
-          </a>
+        <div className="nav-right">
+          <div className="nav-links">
+            <Link to="/app">Create Link</Link>
+            <a href="https://sphere.unicity.network" target="_blank" rel="noreferrer">
+              Sphere Wallet
+            </a>
+          </div>
+          <ThemeToggle />
         </div>
       </nav>
 

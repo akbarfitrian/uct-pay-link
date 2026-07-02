@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import Footer from '../components/Footer'
+import ThemeToggle from '../components/ThemeToggle'
 import './LandingPage.css'
 
 const FEATURES = [
@@ -75,6 +76,7 @@ export default function LandingPage() {
           <span>UNICITY PAY LINK</span>
         </Link>
         <div className="landing-nav-links">
+          <ThemeToggle />
           <Link to="/app" className="landing-btn landing-btn-primary landing-btn-nav">
             Launch App
           </Link>
@@ -108,7 +110,7 @@ export default function LandingPage() {
               <span className="hero-card-status">Paid</span>
             </div>
             <div className="hero-card-amount">
-              <span className="hero-card-figure">1,250</span>
+              <span className="hero-card-figure">1,250.00</span>
               <span className="hero-card-coin">USDC</span>
             </div>
             <div className="hero-card-address">@moriganarcy</div>

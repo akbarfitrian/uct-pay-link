@@ -2,6 +2,8 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  color-scheme: light;
+
   /* Brand blue */
   --primary-blue:        #2563EB;
   --primary-blue-dark:   #1D4ED8;
@@ -38,6 +40,78 @@
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;
+}
+
+/* Night Mode — token overrides only, no component code duplicated */
+html.dark {
+  color-scheme: dark;
+
+  /* Brand blue: brighter indigo/blue for contrast on dark surfaces */
+  --primary-blue:        #3B82F6;
+  --primary-blue-dark:   #2563EB;
+  --primary-blue-light:  #60A5FA;
+  --primary-blue-tint:   rgba(59, 130, 246, 0.14);
+  --primary-blue-tint-2: rgba(59, 130, 246, 0.22);
+
+  /* Neutrals (dark theme) — layered depth, never pure black */
+  --bg-page:         #0B0F19;
+  --bg-card:         #111827;
+  --bg-input:        #0F172A;
+  --bg-subtle:       #1E293B;
+  --border-default:  #334155;
+  --border-light:    #1E293B;
+  --ink:             #F8FAFC;
+  --text-secondary:  #94A3B8;
+  --text-hint:       #64748B;
+
+  /* Status */
+  --success:       #22C55E;
+  --success-tint:  rgba(34, 197, 94, 0.14);
+  --danger:        #F87171;
+  --danger-tint:   rgba(248, 113, 113, 0.14);
+  --warning:       #FBBF24;
+  --warning-tint:  rgba(251, 191, 36, 0.14);
+
+  /* Elevation: heavier, black-based shadows read better on dark surfaces */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.55);
+  --shadow-blue: 0 8px 20px rgba(59, 130, 246, 0.35);
+}
+
+/* Smooth, deliberate transition between Light and Night Mode */
+body,
+.navbar,
+.landing-nav,
+.footer,
+.form-section,
+.preview-section,
+.pay-card,
+.preview-link-box,
+.preview-details,
+.qr-area,
+.payment-details,
+.status-steps,
+.copy-box,
+.tx-info,
+.form-input,
+.form-select,
+.form-textarea,
+.theme-toggle,
+.counter-chip,
+.badge,
+.network-badge,
+.alert,
+.hero-card,
+.hero-card-back,
+.feature-card,
+.feature-icon,
+.roadmap-card,
+.roadmap-icon,
+.roadmap-badge,
+.hero-eyebrow {
+  transition: background-color 0.3s ease, border-color 0.3s ease,
+    color 0.3s ease, box-shadow 0.3s ease;
 }
 
 body {
@@ -101,6 +175,48 @@ body {
 }
 
 .nav-links a:hover { color: var(--primary-blue); }
+
+/* Right-hand nav cluster: nav links + theme toggle grouped together */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+/* Theme toggle button, shared by both the app navbar and the landing navbar */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.3s ease, border-color 0.3s ease,
+    color 0.3s ease, transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--primary-blue);
+  border-color: var(--primary-blue-tint-2);
+  background: var(--primary-blue-tint);
+  transform: translateY(-1px);
+}
+
+.theme-toggle:active { transform: translateY(0); }
+
+.theme-toggle svg {
+  transition: transform 0.35s ease;
+}
+
+.theme-toggle:hover svg {
+  transform: rotate(-14deg);
+}
 
 /* Main content */
 .main-content {
@@ -308,6 +424,7 @@ body {
   height: 26px;
   padding: 0 3px;
   border-radius: 6px;
+  /* Intentionally fixed (not theme-driven): reads as a digital readout in both modes */
   background: var(--ink-soft);
   color: #fff;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -317,7 +434,7 @@ body {
 }
 
 .counter-sep {
-  color: var(--ink-soft);
+  color: var(--ink);
   font-weight: 700;
   font-size: 0.9rem;
   line-height: 1;
@@ -760,7 +877,7 @@ body {
   font-size: 0.75rem;
   overflow-x: auto;
   margin-top: 0.75rem;
-  color: var(--ink-soft);
+  color: var(--text-secondary);
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   line-height: 1.5;
   border: 1px solid var(--border-default);

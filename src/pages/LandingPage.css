@@ -42,7 +42,7 @@
 .landing-nav-links {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .landing-nav-links > a:not(.landing-btn) {
@@ -74,9 +74,9 @@
 }
 
 .landing-btn-primary {
-  background: var(--ink);
+  background: var(--primary-blue);
   color: #fff;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-blue);
 }
 
 .landing-btn-primary:hover {
@@ -379,7 +379,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  background: var(--ink);
+  background: var(--primary-blue);
   color: #fff;
 }
 
