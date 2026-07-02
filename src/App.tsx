@@ -17,7 +17,6 @@ function AppLayout({ children }: { children: React.ReactNode }) {
         </Link>
         <div className="nav-right">
           <div className="nav-links">
-            <Link to="/app">Create Link</Link>
             <a href="https://sphere.unicity.network" target="_blank" rel="noreferrer">
               Sphere Wallet
             </a>
