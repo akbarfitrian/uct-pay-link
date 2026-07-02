@@ -109,7 +109,16 @@ body,
 .roadmap-card,
 .roadmap-icon,
 .roadmap-badge,
-.hero-eyebrow {
+.hero-eyebrow,
+.menu-card,
+.menu-card-icon,
+.bulk-card,
+.bulk-table,
+.bulk-table td,
+.bulk-table th,
+.status-badge,
+.link-input,
+.link-copy-btn {
   transition: background-color 0.3s ease, border-color 0.3s ease,
     color 0.3s ease, box-shadow 0.3s ease;
 }
@@ -948,4 +957,377 @@ body {
 .footer-link:hover {
   color: var(--primary-blue);
   background: var(--primary-blue-tint-2);
+}
+
+/* ============= BILLING DASHBOARD: HOME MENU ============= */
+
+.menu-container {
+  max-width: 900px;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+.menu-header {
+  text-align: center;
+  margin-bottom: 2.25rem;
+}
+
+.menu-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.menu-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-blue-tint-2);
+}
+
+.menu-card:active {
+  transform: translateY(-1px);
+}
+
+.menu-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--primary-blue-tint);
+  color: var(--primary-blue);
+  margin-bottom: 1.25rem;
+  transition: background-color 0.22s ease, transform 0.22s ease;
+}
+
+.menu-card:hover .menu-card-icon {
+  background: var(--primary-blue-tint-2);
+  transform: scale(1.06);
+}
+
+.menu-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.menu-card-desc {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  flex: 1;
+}
+
+.menu-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+}
+
+/* ============= SHARED: back-to-menu button & success alert ============= */
+
+.dashboard-topbar {
+  max-width: 1200px;
+  margin: 1.75rem auto 0;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.4rem 0;
+  transition: color 0.2s;
+}
+
+.btn-back:hover {
+  color: var(--primary-blue);
+}
+
+.alert-success {
+  background: var(--success-tint);
+  color: var(--success);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+/* ============= BILLING DASHBOARD: BULK REQUEST VIEW ============= */
+
+.bulk-container {
+  max-width: 1200px;
+  margin: 2rem auto 3rem;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+.bulk-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  margin-top: 1.5rem;
+}
+
+.bulk-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.bulk-step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.bulk-template-btn {
+  width: auto;
+  flex-shrink: 0;
+  padding: 0.65rem 1.1rem;
+  margin-top: 0;
+}
+
+.bulk-textarea {
+  min-height: 220px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.bulk-actions-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.bulk-actions-row .btn {
+  width: auto;
+}
+
+.bulk-btn {
+  padding: 0.8rem 1.75rem;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
+}
+
+.btn-success:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.bulk-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.bulk-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.bulk-summary-valid {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.bulk-summary-invalid {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+.bulk-summary-total {
+  font-size: 0.82rem;
+  color: var(--text-hint);
+  font-weight: 500;
+}
+
+.bulk-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.bulk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.bulk-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: var(--bg-subtle);
+  color: var(--text-hint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+}
+
+.bulk-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.bulk-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.bulk-table tr.row-invalid {
+  background: var(--danger-tint);
+}
+
+.cell-empty {
+  color: var(--text-hint);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-valid {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.status-invalid {
+  background: var(--danger-tint);
+  color: var(--danger);
+  white-space: normal;
+  max-width: 220px;
+}
+
+.link-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 260px;
+}
+
+.link-input {
+  flex: 1;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.72rem;
+  color: var(--primary-blue);
+  background: var(--bg-subtle);
+}
+
+.link-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-blue);
+  color: #fff;
+  cursor: pointer;
+}
+
+.link-copy-btn:hover {
+  background: var(--primary-blue-dark);
+}
+
+.bulk-block-notice {
+  margin-top: 1.25rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .bulk-card {
+    padding: 1.25rem;
+  }
+
+  .bulk-toolbar {
+    flex-direction: column;
+  }
+
+  .bulk-template-btn {
+    width: 100%;
+  }
+
+  .bulk-actions-row .btn {
+    width: 100%;
+  }
 }
