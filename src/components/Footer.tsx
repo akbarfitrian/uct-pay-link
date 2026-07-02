@@ -2,7 +2,17 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <span className="footer-text">Powered by Unicity Labs</span>
+        <span className="footer-text">
+          Powered by{' '}
+          <a
+            href="https://www.unicity.ai/"
+            target="_blank"
+            rel="noreferrer"
+            className="footer-brand-link"
+          >
+            Unicity Labs
+          </a>
+        </span>
         <div className="footer-links">
           <a 
             href="https://x.com/moriganarcy" 

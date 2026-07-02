@@ -163,7 +163,8 @@ export default function GeneratorPage() {
           <div className="preview-card">
             <div className="preview-header">
               <span className="preview-title">Payment Link</span>
-              <span className="counter">1003</span>
+              <span className="counter">
+              </span>
             </div>
 
             <div className="preview-link-box">
@@ -191,6 +192,16 @@ export default function GeneratorPage() {
                 <span className="detail-label">Network</span>
                 <span className="detail-value"><span className="badge">Testnet Unicity V2</span></span>
               </div>
+            </div>
+
+            <div className="ticket-divider"></div>
+
+            <div className="preview-total">
+              <span className="preview-total-label">Total to Receive</span>
+              <span className="preview-total-value">
+                {amount || '0'}
+                <span className="preview-total-unit">{coin}</span>
+              </span>
             </div>
 
             <button className="btn btn-copy" onClick={handleCopy}>
