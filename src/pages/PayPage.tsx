@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import type { ConnectClient } from '@unicitylabs/sphere-sdk/connect'
 import { COINS } from '../config/coins'
 import { getCoinPrice } from '../services/coingeckoService'
-import { createSphereClient, isInsideSphere, connectSphereWalletViaPopup } from '../lib/sphereConnect'
+import { createSphereClient, isInsideSphere, sphereAgentUrl } from '../lib/sphereConnect'
 
 interface SphereAsset {
   coinId: string
@@ -67,6 +67,7 @@ export default function PayPage() {
   const isValidLink = to.length > 0 && parseFloat(amount) > 0
   const displayAmount = parseFloat(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })
   const insideSphere = isInsideSphere()
+  const sphereUrl = sphereAgentUrl(window.location.href)
   const selectedCoin = COINS[coin]
 
   useEffect(() => {
@@ -85,23 +86,14 @@ export default function PayPage() {
   }, [coin, isValidLink])
 
   const handlePay = async () => {
+    if (!insideSphere) return
     setStatus('connecting')
     setErrorMsg('')
-    let popup: Window | null = null
 
     try {
-      let client: ConnectClient
-      if (insideSphere) {
-        client = createSphereClient('Payment via Unicity payment link')
-        await client.connect()
-      } else {
-        // Not embedded in Sphere's iframe — open Sphere's own /connect page
-        // in a popup window (same "Sign Message" approval dialog Sphere
-        // shows everywhere else) and talk to it over postMessage instead.
-        const popupResult = await connectSphereWalletViaPopup('Payment via Unicity payment link')
-        client = popupResult.client
-        popup = popupResult.popup
-      }
+      const client = createSphereClient('Payment via Unicity payment link')
+
+      await client.connect()
 
       setStatus('querying')
       const asset = await getAssetInfo(client, coin)
@@ -118,15 +110,12 @@ export default function PayPage() {
 
       setTxInfo(JSON.stringify(result, null, 2))
       setStatus('success')
-      popup?.close()
     } catch (err: unknown) {
       setStatus('error')
-      popup?.close()
       const msg = err instanceof Error ? err.message : String(err)
       if (msg.match(/reject|cancel|denied/i)) setErrorMsg('Transaction cancelled.')
       else if (msg.match(/insufficient|balance/i)) setErrorMsg('Insufficient ' + coin + ' balance.')
       else if (msg.match(/network|mismatch/i)) setErrorMsg('Wrong network — switch to Unicity Testnet2.')
-      else if (msg.match(/popup blocked/i)) setErrorMsg('Popup blocked — allow popups for this site and try again.')
       else setErrorMsg(msg)
     }
   }
@@ -256,12 +245,30 @@ export default function PayPage() {
         )}
 
         {/* Action Buttons */}
-        <button className="btn btn-primary btn-pay" onClick={handlePay} disabled={isLoading}>
-          {getButtonText()}
-        </button>
+        {insideSphere && (
+          <button className="btn btn-primary btn-pay" onClick={handlePay} disabled={isLoading}>
+            {getButtonText()}
+          </button>
+        )}
 
-        {!insideSphere && status === 'idle' && (
-          <p className="pay-popup-hint">Opens Sphere Wallet in a popup window to sign in and confirm.</p>
+        {!insideSphere && (
+          <>
+            <div className="alert alert-warning">
+              <strong>Open this link in Sphere Wallet to pay.</strong> Click below — Sphere will load this payment page.
+            </div>
+            <a href={sphereUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
+              Open in Sphere Wallet
+            </a>
+            <div className="sphere-link-section">
+              <p className="sphere-link-label">Or copy Sphere link manually:</p>
+              <div className="copy-box">
+                <span className="copy-text">{sphereUrl}</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText(sphereUrl)}>
+                  Copy
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
         <Link to="/app" className="btn btn-secondary">

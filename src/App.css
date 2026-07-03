@@ -908,13 +908,6 @@ body {
   font-weight: 700;
 }
 
-.pay-popup-hint {
-  margin-top: 0.6rem;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
 /* Footer */
 .footer {
   background: var(--bg-card);
@@ -1631,13 +1624,6 @@ body {
   margin-top: 0.4rem;
   font-size: 0.74rem;
   color: var(--text-hint);
-  text-align: center;
-}
-
-.wallet-connect-hint {
-  margin-top: 0.4rem;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
   text-align: center;
 }
 
