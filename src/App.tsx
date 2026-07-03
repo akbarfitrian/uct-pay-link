@@ -4,6 +4,7 @@ import GeneratorPage from './pages/GeneratorPage'
 import PayPage from './pages/PayPage'
 import Footer from './components/Footer'
 import ThemeToggle from './components/ThemeToggle'
+import QuestWidget from './components/QuestWidget'
 import './App.css'
 
 /** Shared chrome (nav + footer) for the working app screens */
@@ -21,6 +22,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               Sphere Wallet
             </a>
           </div>
+          <QuestWidget />
           <ThemeToggle />
         </div>
       </nav>

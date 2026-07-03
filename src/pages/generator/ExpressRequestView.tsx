@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { ArrowLeft } from 'lucide-react'
 import { SUPPORTED_COINS } from '../../config/coins'
 import { getAllPrices } from '../../services/coingeckoService'
+import { useQuestsContext } from '../../context/QuestsContext'
 
 interface CoinPrice {
   price: number
@@ -22,6 +23,7 @@ export default function ExpressRequestView({ onBack }: ExpressRequestViewProps) 
   const [payLink, setPayLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [prices, setPrices] = useState<Record<string, CoinPrice>>({})
+  const { completeQuest, recordAssetUsed } = useQuestsContext()
 
   // Fetch prices on component mount
   useEffect(() => {
@@ -70,12 +72,16 @@ export default function ExpressRequestView({ onBack }: ExpressRequestViewProps) 
     if (note.trim()) params.set('note', note.trim())
     setPayLink(`${window.location.origin}/pay?${params.toString()}`)
     setCopied(false)
+
+    completeQuest('first_link')
+    recordAssetUsed(coin)
   }
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(payLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+    completeQuest('copy_cat')
   }
 
   const selectedCoin = SUPPORTED_COINS.find((c) => c.id === coin)

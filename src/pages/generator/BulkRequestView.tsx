@@ -8,6 +8,10 @@ import {
   parseBulkInput,
   validateRow,
 } from './csvUtils'
+import { useQuestsContext } from '../../context/QuestsContext'
+
+/** Bulk Master unlocks once a single generated batch reaches this many valid links. */
+const BULK_MASTER_THRESHOLD = 10
 
 interface BulkRequestViewProps {
   onBack: () => void
@@ -20,6 +24,7 @@ export default function BulkRequestView({ onBack }: BulkRequestViewProps) {
   const [rows, setRows] = useState<BulkRowResult[] | null>(null)
   const [linksGenerated, setLinksGenerated] = useState(false)
   const [copiedRowId, setCopiedRowId] = useState<string | null>(null)
+  const { completeQuest, recordAssetUsed } = useQuestsContext()
 
   const validCount = useMemo(() => rows?.filter((r) => r.validation.valid).length ?? 0, [rows])
   const invalidCount = (rows?.length ?? 0) - validCount
@@ -44,12 +49,24 @@ export default function BulkRequestView({ onBack }: BulkRequestViewProps) {
     }))
     setRows(withLinks)
     setLinksGenerated(true)
+
+    const validRows = withLinks.filter((row) => row.validation.valid)
+    if (validRows.length > 0) {
+      completeQuest('bulk_starter')
+    }
+    if (validRows.length >= BULK_MASTER_THRESHOLD) {
+      completeQuest('bulk_master')
+    }
+    for (const row of validRows) {
+      recordAssetUsed(row.asset)
+    }
   }
 
   const handleCopyRow = async (id: string, link: string) => {
     await navigator.clipboard.writeText(link)
     setCopiedRowId(id)
     setTimeout(() => setCopiedRowId((current) => (current === id ? null : current)), 2000)
+    completeQuest('copy_cat')
   }
 
   const handleDownloadResult = () => {
