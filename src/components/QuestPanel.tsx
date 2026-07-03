@@ -1,13 +1,15 @@
 import { Check, X } from 'lucide-react'
 import { TOTAL_POSSIBLE_POINTS } from '../config/quests'
 import { useQuestsContext } from '../context/QuestsContext'
+import WalletConnect from './WalletConnect'
 
 interface QuestPanelProps {
   onClose: () => void
 }
 
 export default function QuestPanel({ onClose }: QuestPanelProps) {
-  const { quests, completedIds, totalPoints, tier } = useQuestsContext()
+  const { quests, completedIds, totalPoints, tier, walletStatus, walletAddress } = useQuestsContext()
+  const isWalletLinked = walletStatus === 'linked' && !!walletAddress
   const progressPct = TOTAL_POSSIBLE_POINTS > 0 ? Math.round((totalPoints / TOTAL_POSSIBLE_POINTS) * 100) : 0
 
   return (
@@ -48,7 +50,13 @@ export default function QuestPanel({ onClose }: QuestPanelProps) {
         })}
       </ul>
 
-      <p className="quest-panel-footnote">Progress is saved on this device only, no account needed yet.</p>
+      <WalletConnect />
+
+      <p className="quest-panel-footnote">
+        {isWalletLinked
+          ? 'Progress is saved to your wallet — it will follow you across devices.'
+          : 'Progress is saved on this device only. Connect your wallet to keep it.'}
+      </p>
     </div>
   )
 }

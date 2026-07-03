@@ -1557,6 +1557,86 @@ body {
   text-align: center;
 }
 
+/* ===== Wallet Connect (inside Quest Panel) ===== */
+
+.wallet-connect {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.wallet-connect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  height: 36px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--primary-blue-tint-2);
+  border-radius: var(--radius-md);
+  background: var(--primary-blue-tint);
+  color: var(--primary-blue-dark);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.wallet-connect-btn:hover:not(:disabled) {
+  background: var(--primary-blue-tint-2);
+}
+
+.wallet-connect-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.wallet-connect-spin {
+  animation: wallet-connect-spin 0.9s linear infinite;
+}
+
+@keyframes wallet-connect-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.wallet-connect-error {
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  color: var(--text-hint);
+  text-align: center;
+}
+
+.wallet-connect-linked {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wallet-connect-icon-done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--primary-blue);
+  color: #fff;
+}
+
+.wallet-connect-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.wallet-connect-text strong {
+  color: var(--ink);
+}
+
 .quest-toast {
   position: fixed;
   top: 84px;

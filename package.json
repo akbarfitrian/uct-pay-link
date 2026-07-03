@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
     "@unicitylabs/sphere-sdk": "latest",
     "lucide-react": "^1.22.0",
     "qrcode.react": "^4.2.0",

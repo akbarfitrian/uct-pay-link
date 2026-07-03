@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import {
-  ConnectClient,
-  SPHERE_NETWORKS,
-  type ConnectTransport,
-  type SphereConnectMessage,
-  isSphereConnectMessage,
-} from '@unicitylabs/sphere-sdk/connect'
+import type { ConnectClient } from '@unicitylabs/sphere-sdk/connect'
 import { COINS } from '../config/coins'
 import { getCoinPrice } from '../services/coingeckoService'
-
-const SPHERE_ORIGIN = 'https://sphere.unicity.network'
-const SPHERE_AGENT_BASE = `${SPHERE_ORIGIN}/agents/custom`
+import { createSphereClient, isInsideSphere, sphereAgentUrl } from '../lib/sphereConnect'
 
 interface SphereAsset {
   coinId: string
@@ -20,23 +12,6 @@ interface SphereAsset {
 }
 
 type PayStatus = 'idle' | 'connecting' | 'querying' | 'sending' | 'success' | 'error'
-
-function createIframeTransport(): ConnectTransport {
-  return {
-    send(msg: SphereConnectMessage) {
-      window.parent.postMessage(msg, '*')
-    },
-    onMessage(handler: (msg: SphereConnectMessage) => void) {
-      const fn = (e: MessageEvent) => {
-        const fromParent = e.source === window.parent || e.source === window.top
-        if (fromParent && isSphereConnectMessage(e.data)) handler(e.data)
-      }
-      window.addEventListener('message', fn)
-      return () => window.removeEventListener('message', fn)
-    },
-    destroy() {},
-  }
-}
 
 async function getAssetInfo(client: ConnectClient, symbol: string) {
   try {
@@ -91,8 +66,8 @@ export default function PayPage() {
 
   const isValidLink = to.length > 0 && parseFloat(amount) > 0
   const displayAmount = parseFloat(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })
-  const isInsideSphere = window !== window.parent
-  const sphereAgentUrl = `${SPHERE_AGENT_BASE}?url=${encodeURIComponent(window.location.href)}`
+  const insideSphere = isInsideSphere()
+  const sphereUrl = sphereAgentUrl(window.location.href)
   const selectedCoin = COINS[coin]
 
   useEffect(() => {
@@ -111,20 +86,12 @@ export default function PayPage() {
   }, [coin, isValidLink])
 
   const handlePay = async () => {
-    if (!isInsideSphere) return
+    if (!insideSphere) return
     setStatus('connecting')
     setErrorMsg('')
 
     try {
-      const client = new ConnectClient({
-        transport: createIframeTransport(),
-        dapp: {
-          name: 'UCT Pay Link',
-          description: 'Payment via Unicity payment link',
-          url: window.location.origin,
-        },
-        network: SPHERE_NETWORKS.testnet2,
-      })
+      const client = createSphereClient('Payment via Unicity payment link')
 
       await client.connect()
 
@@ -278,25 +245,25 @@ export default function PayPage() {
         )}
 
         {/* Action Buttons */}
-        {isInsideSphere && (
+        {insideSphere && (
           <button className="btn btn-primary btn-pay" onClick={handlePay} disabled={isLoading}>
             {getButtonText()}
           </button>
         )}
 
-        {!isInsideSphere && (
+        {!insideSphere && (
           <>
             <div className="alert alert-warning">
               <strong>Open this link in Sphere Wallet to pay.</strong> Click below — Sphere will load this payment page.
             </div>
-            <a href={sphereAgentUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
+            <a href={sphereUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
               Open in Sphere Wallet
             </a>
             <div className="sphere-link-section">
               <p className="sphere-link-label">Or copy Sphere link manually:</p>
               <div className="copy-box">
-                <span className="copy-text">{sphereAgentUrl}</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText(sphereAgentUrl)}>
+                <span className="copy-text">{sphereUrl}</span>
+                <button className="copy-btn" onClick={() => navigator.clipboard.writeText(sphereUrl)}>
                   Copy
                 </button>
               </div>
