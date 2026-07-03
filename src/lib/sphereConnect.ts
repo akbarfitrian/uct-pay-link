@@ -8,18 +8,28 @@ import {
 
 export const SPHERE_ORIGIN = 'https://sphere.unicity.network'
 export const SPHERE_AGENT_BASE = `${SPHERE_ORIGIN}/agents/custom`
-export const SPHERE_CONNECT_URL = `${SPHERE_ORIGIN}/connect`
 
-const POPUP_SESSION_KEY = 'sphere-connect-popup-session'
-
+/**
+ * True when this page is running inside Sphere's own iframe (i.e. someone
+ * opened it via the "Open in Sphere Wallet" agent flow). Sphere-connect
+ * calls only work in this context — postMessage has a parent to talk to.
+ */
 export function isInsideSphere(): boolean {
   return window !== window.parent
 }
 
+/** Sphere agent URL that, when opened, loads `targetUrl` inside Sphere's iframe. */
 export function sphereAgentUrl(targetUrl: string = window.location.href): string {
   return `${SPHERE_AGENT_BASE}?url=${encodeURIComponent(targetUrl)}`
 }
 
+/**
+ * postMessage-based transport used whenever *we* are the iframe child and
+ * Sphere Wallet is the parent frame. This is the only transport this app
+ * needs today (Sphere is always the host) — same object shape the SDK
+ * expects from a browser-extension transport, just backed by
+ * window.parent.postMessage instead of an extension bridge.
+ */
 export function createIframeTransport(): ConnectTransport {
   return {
     send(msg: SphereConnectMessage) {
@@ -37,46 +47,7 @@ export function createIframeTransport(): ConnectTransport {
   }
 }
 
-function createPopupTransport(popup: Window): ConnectTransport {
-  const handlers: Set<(msg: SphereConnectMessage) => void> = new Set()
-  let messageHandler: ((e: MessageEvent) => void) | null = null
-
-  const setupListener = () => {
-    messageHandler = (e: MessageEvent) => {
-      if (isSphereConnectMessage(e.data)) {
-        for (const handler of handlers) {
-          try {
-            handler(e.data)
-          } catch (err) {
-            console.error('Handler error:', err)
-          }
-        }
-      }
-    }
-    window.addEventListener('message', messageHandler)
-  }
-
-  setupListener()
-
-  return {
-    send(msg: SphereConnectMessage) {
-      popup.postMessage(msg, SPHERE_ORIGIN)
-    },
-    onMessage(handler: (msg: SphereConnectMessage) => void) {
-      handlers.add(handler)
-      return () => {
-        handlers.delete(handler)
-      }
-    },
-    destroy() {
-      handlers.clear()
-      if (messageHandler) {
-        window.removeEventListener('message', messageHandler)
-      }
-    },
-  }
-}
-
+/** Creates a ConnectClient wired to the iframe transport, ready to `.connect()` / `.query()` / `.intent()`. */
 export function createSphereClient(dappDescription: string) {
   return new ConnectClient({
     transport: createIframeTransport(),
@@ -89,6 +60,12 @@ export function createSphereClient(dappDescription: string) {
   })
 }
 
+/**
+ * `client.connect()` resolves with a wallet `identity`. The SDK's exact
+ * shape isn't pinned down here, so this accepts whatever it hands back —
+ * a bare string, or an object exposing a nametag/address/id — and returns
+ * a single display/storage string (e.g. "alice" or "0xabc...").
+ */
 export function extractIdentityAddress(identity: unknown): string {
   if (typeof identity === 'string') return identity.trim()
 
@@ -101,6 +78,12 @@ export function extractIdentityAddress(identity: unknown): string {
   return ''
 }
 
+/**
+ * Connects to Sphere Wallet (must be called from inside Sphere's iframe,
+ * see isInsideSphere()) and returns the linked identity as a plain string.
+ * Throws if not inside Sphere, if the user rejects the connection, or if
+ * Sphere doesn't hand back a usable identity.
+ */
 export async function connectSphereWallet(dappDescription: string): Promise<string> {
   if (!isInsideSphere()) {
     throw new Error('Open this page inside Sphere Wallet to connect.')
@@ -115,80 +98,4 @@ export async function connectSphereWallet(dappDescription: string): Promise<stri
   }
 
   return address
-}
-
-export function openSpherePopup(): Window {
-  const width = 420
-  const height = 640
-  const left = Math.round(window.screenX + (window.outerWidth - width) / 2)
-  const top = Math.round(window.screenY + (window.outerHeight - height) / 2)
-
-  const url = `${SPHERE_CONNECT_URL}?origin=${encodeURIComponent(window.location.origin)}`
-  const popup = window.open(
-    url,
-    'sphere-connect',
-    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`,
-  )
-
-  if (!popup) {
-    throw new Error('Popup blocked — please allow popups for this site and try again.')
-  }
-
-  return popup
-}
-
-export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
-  return new ConnectClient({
-    transport: createPopupTransport(popup),
-    dapp: {
-      name: 'UCT Pay Link',
-      description: dappDescription,
-      url: window.location.origin,
-    },
-    network: SPHERE_NETWORKS.testnet2,
-    ...(resumeSessionId ? { resumeSessionId } : {}),
-  })
-}
-
-export function saveSpherePopupSession(sessionId: string) {
-  sessionStorage.setItem(POPUP_SESSION_KEY, sessionId)
-}
-
-export function clearSpherePopupSession() {
-  sessionStorage.removeItem(POPUP_SESSION_KEY)
-}
-
-export function getSavedSpherePopupSession(): string | null {
-  return sessionStorage.getItem(POPUP_SESSION_KEY)
-}
-
-export async function connectSphereWalletViaPopup(dappDescription: string): Promise<{
-  address: string
-  client: ConnectClient
-  popup: Window
-}> {
-  const popup = openSpherePopup()
-
-  try {
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    const savedSession = getSavedSpherePopupSession() ?? undefined
-    const client = createPopupClient(dappDescription, popup, savedSession)
-    
-    const { identity, sessionId } = await client.connect()
-    const address = extractIdentityAddress(identity)
-
-    if (!address) {
-      throw new Error('Sphere Wallet did not return a usable identity.')
-    }
-
-    if (sessionId) saveSpherePopupSession(sessionId)
-
-    return { address, client, popup }
-  } catch (err) {
-    console.error('Wallet connection failed:', err)
-    clearSpherePopupSession()
-    popup.close()
-    throw err
-  }
 }
