@@ -120,8 +120,9 @@ grant execute on function public.link_wallet_identity(text) to authenticated;
 -- ----------------------------------------------------------------------------
 -- 3. get_my_quest_state(): now also returns wallet_address, so the app can
 --    show "connected as @..." immediately on load without a second round
---    trip. Postgres won't let CREATE OR REPLACE change a function's return
---    columns, so the old 3-column version has to be dropped first.
+--    trip. Signature change (new output column) — safe since it's SECURITY
+--    DEFINER SQL, not referenced positionally anywhere except the .single<>()
+--    calls in useQuests.ts, which are updated alongside this migration.
 -- ----------------------------------------------------------------------------
 drop function if exists public.get_my_quest_state();
 

@@ -1413,11 +1413,28 @@ body {
   z-index: 50;
   width: 340px;
   max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
   background: var(--bg-card);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 1.1rem;
+}
+
+/* On narrow screens the trophy badge isn't flush with the screen edge, so
+   anchoring the panel to the badge's right edge pushes it off-screen to the
+   left. Detach it from the badge and center it under the navbar instead. */
+@media (max-width: 640px) {
+  .quest-panel {
+    position: fixed;
+    top: 4.75rem;
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 6rem);
+  }
 }
 
 .quest-panel-header {
