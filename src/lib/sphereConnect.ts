@@ -10,30 +10,16 @@ export const SPHERE_ORIGIN = 'https://sphere.unicity.network'
 export const SPHERE_AGENT_BASE = `${SPHERE_ORIGIN}/agents/custom`
 export const SPHERE_CONNECT_URL = `${SPHERE_ORIGIN}/connect`
 
-/** sessionStorage key used to resume a popup connection across reloads (see CONNECT.md → "Popup Mode (P3) — Session Resume"). */
 const POPUP_SESSION_KEY = 'sphere-connect-popup-session'
 
-/**
- * True when this page is running inside Sphere's own iframe (i.e. someone
- * opened it via the "Open in Sphere Wallet" agent flow). Sphere-connect
- * calls only work in this context — postMessage has a parent to talk to.
- */
 export function isInsideSphere(): boolean {
   return window !== window.parent
 }
 
-/** Sphere agent URL that, when opened, loads `targetUrl` inside Sphere's iframe. */
 export function sphereAgentUrl(targetUrl: string = window.location.href): string {
   return `${SPHERE_AGENT_BASE}?url=${encodeURIComponent(targetUrl)}`
 }
 
-/**
- * postMessage-based transport used whenever *we* are the iframe child and
- * Sphere Wallet is the parent frame. This is the only transport this app
- * needs today (Sphere is always the host) — same object shape the SDK
- * expects from a browser-extension transport, just backed by
- * window.parent.postMessage instead of an extension bridge.
- */
 export function createIframeTransport(): ConnectTransport {
   return {
     send(msg: SphereConnectMessage) {
@@ -51,50 +37,46 @@ export function createIframeTransport(): ConnectTransport {
   }
 }
 
-/**
- * Custom postMessage transport for popup mode - parent (dApp) side
- * Handles bidirectional postMessage communication with popup window
- */
 function createPopupTransport(popup: Window): ConnectTransport {
   const handlers: Set<(msg: SphereConnectMessage) => void> = new Set()
+  let messageHandler: ((e: MessageEvent) => void) | null = null
 
-  const messageHandler = (e: MessageEvent) => {
-    if (isSphereConnectMessage(e.data)) {
-      console.log('Parent received from popup:', e.data)
-      for (const handler of handlers) {
-        try {
-          handler(e.data)
-        } catch (err) {
-          console.error('Handler error:', err)
+  const setupListener = () => {
+    messageHandler = (e: MessageEvent) => {
+      if (isSphereConnectMessage(e.data)) {
+        for (const handler of handlers) {
+          try {
+            handler(e.data)
+          } catch (err) {
+            console.error('Handler error:', err)
+          }
         }
       }
     }
+    window.addEventListener('message', messageHandler)
   }
 
-  window.addEventListener('message', messageHandler)
+  setupListener()
 
   return {
     send(msg: SphereConnectMessage) {
-      console.log('Parent sending to popup:', msg)
       popup.postMessage(msg, SPHERE_ORIGIN)
     },
     onMessage(handler: (msg: SphereConnectMessage) => void) {
       handlers.add(handler)
       return () => {
         handlers.delete(handler)
-        if (handlers.size === 0) {
-          window.removeEventListener('message', messageHandler)
-        }
       }
     },
     destroy() {
       handlers.clear()
-      window.removeEventListener('message', messageHandler)
+      if (messageHandler) {
+        window.removeEventListener('message', messageHandler)
+      }
     },
   }
 }
 
-/** Creates a ConnectClient wired to the iframe transport, ready to `.connect()` / `.query()` / `.intent()`. */
 export function createSphereClient(dappDescription: string) {
   return new ConnectClient({
     transport: createIframeTransport(),
@@ -107,12 +89,6 @@ export function createSphereClient(dappDescription: string) {
   })
 }
 
-/**
- * `client.connect()` resolves with a wallet `identity`. The SDK's exact
- * shape isn't pinned down here, so this accepts whatever it hands back —
- * a bare string, or an object exposing a nametag/address/id — and returns
- * a single display/storage string (e.g. "alice" or "0xabc...").
- */
 export function extractIdentityAddress(identity: unknown): string {
   if (typeof identity === 'string') return identity.trim()
 
@@ -125,12 +101,6 @@ export function extractIdentityAddress(identity: unknown): string {
   return ''
 }
 
-/**
- * Connects to Sphere Wallet (must be called from inside Sphere's iframe,
- * see isInsideSphere()) and returns the linked identity as a plain string.
- * Throws if not inside Sphere, if the user rejects the connection, or if
- * Sphere doesn't hand back a usable identity.
- */
 export async function connectSphereWallet(dappDescription: string): Promise<string> {
   if (!isInsideSphere()) {
     throw new Error('Open this page inside Sphere Wallet to connect.')
@@ -147,19 +117,6 @@ export async function connectSphereWallet(dappDescription: string): Promise<stri
   return address
 }
 
-// ---------------------------------------------------------------------------
-// Popup mode (P3) — used when this page is a normal browser tab, not embedded
-// inside Sphere's iframe. Opens sphere.unicity.network/connect in a small
-// centered popup (same "Sign Message" approval dialog Sphere shows anywhere
-// else) and talks to it over window.postMessage instead of window.parent.
-// See Sphere's CONNECT.md → "Connection Modes" for the full P1/P2/P3 spec.
-// ---------------------------------------------------------------------------
-
-/**
- * Opens Sphere's own /connect page in a small centered popup window. Throws
- * if the browser blocked the popup (must be called directly from a user
- * gesture, e.g. a button's onClick, or the browser will block it).
- */
 export function openSpherePopup(): Window {
   const width = 420
   const height = 640
@@ -180,10 +137,7 @@ export function openSpherePopup(): Window {
   return popup
 }
 
-/** Creates a ConnectClient wired to a popup window instead of a parent iframe. */
 export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
-  console.log('Creating popup client with custom transport')
-
   return new ConnectClient({
     transport: createPopupTransport(popup),
     dapp: {
@@ -208,18 +162,6 @@ export function getSavedSpherePopupSession(): string | null {
   return sessionStorage.getItem(POPUP_SESSION_KEY)
 }
 
-/**
- * Connects to Sphere Wallet via a popup window — the fallback used whenever
- * this page is a normal tab rather than something opened inside Sphere's own
- * iframe. Opens sphere.unicity.network/connect, which shows the same
- * "Sign Message" approval dialog as any other Sphere connect flow, and
- * resolves with the linked identity once the user approves in that popup.
- *
- * Note: per Sphere's popup-mode spec, the popup must stay open for the
- * connection to keep working — closing it ends the session. The returned
- * `popup` handle lets the caller decide when to close it (e.g. right after a
- * one-off payment intent finishes, or keep it open for a longer session).
- */
 export async function connectSphereWalletViaPopup(dappDescription: string): Promise<{
   address: string
   client: ConnectClient
@@ -228,17 +170,12 @@ export async function connectSphereWalletViaPopup(dappDescription: string): Prom
   const popup = openSpherePopup()
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    console.log('Opening Sphere popup for wallet connection')
+    await new Promise(resolve => setTimeout(resolve, 800))
 
     const savedSession = getSavedSpherePopupSession() ?? undefined
     const client = createPopupClient(dappDescription, popup, savedSession)
     
-    console.log('Waiting for wallet connection...')
     const { identity, sessionId } = await client.connect()
-    
-    console.log('Successfully connected to wallet')
     const address = extractIdentityAddress(identity)
 
     if (!address) {
