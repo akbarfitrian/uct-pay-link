@@ -212,53 +212,38 @@ export function useQuests() {
    * connection and this resolves with a usable wallet address.
    */
   const connectWallet = useCallback(async () => {
-    setWalletStatus('connecting')
-    setWalletError('')
+  setWalletStatus('connecting')
+  setWalletError('')
 
-    try {
-      let address: string
-      let popup: Window | null = null
-
-      if (isInsideSphere()) {
-        console.log('Connecting via Sphere iframe mode')
-        address = await connectSphereWallet('Link quest progress to your wallet')
-      } else {
-        console.log('Connecting via popup mode')
-        const result = await connectSphereWalletViaPopup('Link quest progress to your wallet')
-        address = result.address
-        popup = result.popup
-        setPopupWindow(popup)
-      }
-
-      setWalletStatus('linking')
-      const { data, error } = await supabase
-        .rpc('link_wallet_identity', { p_wallet_address: address })
-        .single<LinkWalletRow>()
-
-      if (error) throw error
-      if (!data) throw new Error('No response from link_wallet_identity')
-
-      setState({
-        completed: data.completed_quest_ids.filter(isQuestId),
-        usedAssets: data.used_assets,
-      })
-      setTotalPoints(data.total_points)
-      setWalletAddress(data.wallet_address)
-      setWalletStatus('linked')
-      console.log('Wallet connected and linked successfully')
-    } catch (err) {
-      console.error('connectWallet failed', err)
-      const msg = err instanceof Error ? err.message : String(err)
-      setWalletError(msg.match(/reject|cancel|denied/i) ? 'Connection cancelled.' : msg)
-      setWalletStatus('error')
-      
-      // Close popup on error
-      if (popupWindow && !popupWindow.closed) {
-        popupWindow.close()
-        setPopupWindow(null)
-      }
+  try {
+    if (!isInsideSphere()) {
+      throw new Error('Please open this app from Sphere Wallet to connect.')
     }
-  }, [popupWindow])
+
+    const address = await connectSphereWallet('Link quest progress to your wallet')
+
+    setWalletStatus('linking')
+    const { data, error } = await supabase
+      .rpc('link_wallet_identity', { p_wallet_address: address })
+      .single<LinkWalletRow>()
+
+    if (error) throw error
+    if (!data) throw new Error('No response from link_wallet_identity')
+
+    setState({
+      completed: data.completed_quest_ids.filter(isQuestId),
+      usedAssets: data.used_assets,
+    })
+    setTotalPoints(data.total_points)
+    setWalletAddress(data.wallet_address)
+    setWalletStatus('linked')
+  } catch (err) {
+    console.error('connectWallet failed', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    setWalletError(msg)
+    setWalletStatus('error')
+  }
+}, [])
 
   const completedIds = new Set(state.completed)
 
