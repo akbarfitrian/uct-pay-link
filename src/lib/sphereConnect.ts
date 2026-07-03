@@ -140,16 +140,15 @@ export function openSpherePopup(): Window {
 
 /** Creates a ConnectClient wired to a popup window instead of a parent iframe. */
 export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
-  // Determine correct target origin for popup communication
-  // The popup (at sphere.unicity.network) needs to send back to us (the parent dApp)
-  const dAppOrigin = window.location.origin
-  
+  console.log('Creating popup client:', {
+    targetOrigin: window.location.origin,
+    resumeSessionId: !!resumeSessionId,
+  })
+
   return new ConnectClient({
     transport: PostMessageTransport.forClient({ 
       target: popup,
-      // IMPORTANT: This tells the popup where to send messages
-      // Must match the dApp origin (NOT Sphere origin)
-      targetOrigin: dAppOrigin
+      targetOrigin: window.location.origin
     }),
     dapp: {
       name: 'UCT Pay Link',
@@ -193,9 +192,21 @@ export async function connectSphereWalletViaPopup(dappDescription: string): Prom
   const popup = openSpherePopup()
 
   try {
+    // Wait for popup to fully load before creating client
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    console.log('Creating popup client...', {
+      popupOrigin: popup.location.origin,
+      parentOrigin: window.location.origin,
+    })
+
     const savedSession = getSavedSpherePopupSession() ?? undefined
     const client = createPopupClient(dappDescription, popup, savedSession)
+    
+    console.log('Waiting for client.connect()...')
     const { identity, sessionId } = await client.connect()
+    
+    console.log('Connected successfully!', { identity, sessionId })
     const address = extractIdentityAddress(identity)
 
     if (!address) {
@@ -206,6 +217,7 @@ export async function connectSphereWalletViaPopup(dappDescription: string): Prom
 
     return { address, client, popup }
   } catch (err) {
+    console.error('connectSphereWalletViaPopup failed:', err)
     clearSpherePopupSession()
     popup.close()
     throw err
