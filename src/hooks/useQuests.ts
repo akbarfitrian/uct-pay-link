@@ -73,6 +73,7 @@ export function useQuests() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [walletStatus, setWalletStatus] = useState<WalletStatus>('idle')
   const [walletError, setWalletError] = useState('')
+  const [popupWindow, setPopupWindow] = useState<Window | null>(null)
 
   // Bootstrap: sign in (or resume session), then load current state.
   useEffect(() => {
@@ -111,6 +112,15 @@ export function useQuests() {
       cancelled = true
     }
   }, [])
+
+  // Cleanup popup on unmount
+  useEffect(() => {
+    return () => {
+      if (popupWindow && !popupWindow.closed) {
+        popupWindow.close()
+      }
+    }
+  }, [popupWindow])
 
   const unlock = useCallback((ids: QuestId[]) => {
     if (ids.length === 0) return
@@ -206,9 +216,19 @@ export function useQuests() {
     setWalletError('')
 
     try {
-      const address = isInsideSphere()
-        ? await connectSphereWallet('Link quest progress to your wallet')
-        : (await connectSphereWalletViaPopup('Link quest progress to your wallet')).address
+      let address: string
+      let popup: Window | null = null
+
+      if (isInsideSphere()) {
+        // FIX: Inside Sphere iframe - use direct connection
+        address = await connectSphereWallet('Link quest progress to your wallet')
+      } else {
+        // FIX: Outside Sphere iframe - use popup mode and keep popup reference
+        const result = await connectSphereWalletViaPopup('Link quest progress to your wallet')
+        address = result.address
+        popup = result.popup
+        setPopupWindow(popup) // Store popup for cleanup
+      }
 
       setWalletStatus('linking')
       const { data, error } = await supabase
@@ -230,8 +250,14 @@ export function useQuests() {
       const msg = err instanceof Error ? err.message : String(err)
       setWalletError(msg.match(/reject|cancel|denied/i) ? 'Connection cancelled.' : msg)
       setWalletStatus('error')
+      
+      // Close popup on error
+      if (popupWindow && !popupWindow.closed) {
+        popupWindow.close()
+        setPopupWindow(null)
+      }
     }
-  }, [])
+  }, [popupWindow])
 
   const completedIds = new Set(state.completed)
 

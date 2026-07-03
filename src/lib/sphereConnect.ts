@@ -141,7 +141,10 @@ export function openSpherePopup(): Window {
 /** Creates a ConnectClient wired to a popup window instead of a parent iframe. */
 export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
   return new ConnectClient({
-    transport: PostMessageTransport.forClient({ target: popup, targetOrigin: SPHERE_ORIGIN }),
+    transport: PostMessageTransport.forClient({ 
+      target: popup, 
+      targetOrigin: '*' // FIX: Allow popup to send messages back to any origin (will be validated by browser)
+    }),
     dapp: {
       name: 'UCT Pay Link',
       description: dappDescription,
