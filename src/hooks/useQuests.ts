@@ -220,14 +220,14 @@ export function useQuests() {
       let popup: Window | null = null
 
       if (isInsideSphere()) {
-        // FIX: Inside Sphere iframe - use direct connection
+        console.log('Connecting via Sphere iframe mode')
         address = await connectSphereWallet('Link quest progress to your wallet')
       } else {
-        // FIX: Outside Sphere iframe - use popup mode and keep popup reference
+        console.log('Connecting via popup mode')
         const result = await connectSphereWalletViaPopup('Link quest progress to your wallet')
         address = result.address
         popup = result.popup
-        setPopupWindow(popup) // Store popup for cleanup
+        setPopupWindow(popup)
       }
 
       setWalletStatus('linking')
@@ -245,6 +245,7 @@ export function useQuests() {
       setTotalPoints(data.total_points)
       setWalletAddress(data.wallet_address)
       setWalletStatus('linked')
+      console.log('Wallet connected and linked successfully')
     } catch (err) {
       console.error('connectWallet failed', err)
       const msg = err instanceof Error ? err.message : String(err)
@@ -270,14 +271,11 @@ export function useQuests() {
     recordAssetUsed,
     activeToast: toastQueue[0] ?? null,
     dismissToast,
-    /** New — existing consumers can ignore this; useful if you want a loading skeleton on the badge. */
     isReady,
-    /** Wallet-linked progress (see MIGRATION_NOTES.md → "upgrading from anonymous to a real account"). */
     walletAddress,
     walletStatus,
     walletError,
     connectWallet,
-    /** connectWallet() always works now — inside Sphere's iframe it uses the iframe bridge, otherwise it opens the Sphere connect popup. */
     canConnectWallet: true,
   }
 }

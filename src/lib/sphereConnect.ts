@@ -5,7 +5,6 @@ import {
   type SphereConnectMessage,
   isSphereConnectMessage,
 } from '@unicitylabs/sphere-sdk/connect'
-import { PostMessageTransport } from '@unicitylabs/sphere-sdk/connect/browser'
 
 export const SPHERE_ORIGIN = 'https://sphere.unicity.network'
 export const SPHERE_AGENT_BASE = `${SPHERE_ORIGIN}/agents/custom`
@@ -49,6 +48,49 @@ export function createIframeTransport(): ConnectTransport {
       return () => window.removeEventListener('message', fn)
     },
     destroy() {},
+  }
+}
+
+/**
+ * Custom postMessage transport for popup mode - parent (dApp) side
+ * Handles bidirectional postMessage communication with popup window
+ */
+function createPopupTransport(popup: Window): ConnectTransport {
+  const handlers: Set<(msg: SphereConnectMessage) => void> = new Set()
+
+  const messageHandler = (e: MessageEvent) => {
+    if (isSphereConnectMessage(e.data)) {
+      console.log('Parent received from popup:', e.data)
+      for (const handler of handlers) {
+        try {
+          handler(e.data)
+        } catch (err) {
+          console.error('Handler error:', err)
+        }
+      }
+    }
+  }
+
+  window.addEventListener('message', messageHandler)
+
+  return {
+    send(msg: SphereConnectMessage) {
+      console.log('Parent sending to popup:', msg)
+      popup.postMessage(msg, SPHERE_ORIGIN)
+    },
+    onMessage(handler: (msg: SphereConnectMessage) => void) {
+      handlers.add(handler)
+      return () => {
+        handlers.delete(handler)
+        if (handlers.size === 0) {
+          window.removeEventListener('message', messageHandler)
+        }
+      }
+    },
+    destroy() {
+      handlers.clear()
+      window.removeEventListener('message', messageHandler)
+    },
   }
 }
 
@@ -140,16 +182,10 @@ export function openSpherePopup(): Window {
 
 /** Creates a ConnectClient wired to a popup window instead of a parent iframe. */
 export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
-  console.log('Creating popup client:', {
-    targetOrigin: window.location.origin,
-    resumeSessionId: !!resumeSessionId,
-  })
+  console.log('Creating popup client with custom transport')
 
   return new ConnectClient({
-    transport: PostMessageTransport.forClient({ 
-      target: popup,
-      targetOrigin: window.location.origin
-    }),
+    transport: createPopupTransport(popup),
     dapp: {
       name: 'UCT Pay Link',
       description: dappDescription,
@@ -192,21 +228,17 @@ export async function connectSphereWalletViaPopup(dappDescription: string): Prom
   const popup = openSpherePopup()
 
   try {
-    // Wait for popup to fully load before creating client
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 500))
     
-    console.log('Creating popup client...', {
-      popupOrigin: popup.location.origin,
-      parentOrigin: window.location.origin,
-    })
+    console.log('Opening Sphere popup for wallet connection')
 
     const savedSession = getSavedSpherePopupSession() ?? undefined
     const client = createPopupClient(dappDescription, popup, savedSession)
     
-    console.log('Waiting for client.connect()...')
+    console.log('Waiting for wallet connection...')
     const { identity, sessionId } = await client.connect()
     
-    console.log('Connected successfully!', { identity, sessionId })
+    console.log('Successfully connected to wallet')
     const address = extractIdentityAddress(identity)
 
     if (!address) {
@@ -217,7 +249,7 @@ export async function connectSphereWalletViaPopup(dappDescription: string): Prom
 
     return { address, client, popup }
   } catch (err) {
-    console.error('connectSphereWalletViaPopup failed:', err)
+    console.error('Wallet connection failed:', err)
     clearSpherePopupSession()
     popup.close()
     throw err
