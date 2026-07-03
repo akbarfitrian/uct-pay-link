@@ -11,7 +11,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <nav className="navbar">
-        <Link to="/app" className="logo" style={{ textDecoration: 'none' }}>
+        <Link to="/" className="logo" style={{ textDecoration: 'none' }}>
           <img src="/logo.png" alt="UCT Pay Link" className="logo-icon" />
           UNICITY PAY LINK
         </Link>
