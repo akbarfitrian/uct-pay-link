@@ -15,7 +15,7 @@ export default function Footer() {
         </span>
         <div className="footer-links">
           <a 
-            href="https://x.com/moriganarcy" 
+            href="https://x.com/uctpaylink" 
             target="_blank" 
             rel="noreferrer"
             className="footer-link"
