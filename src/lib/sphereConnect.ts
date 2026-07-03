@@ -140,10 +140,16 @@ export function openSpherePopup(): Window {
 
 /** Creates a ConnectClient wired to a popup window instead of a parent iframe. */
 export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
+  // Determine correct target origin for popup communication
+  // The popup (at sphere.unicity.network) needs to send back to us (the parent dApp)
+  const dAppOrigin = window.location.origin
+  
   return new ConnectClient({
     transport: PostMessageTransport.forClient({ 
-      target: popup, 
-      targetOrigin: '*' // FIX: Allow popup to send messages back to any origin (will be validated by browser)
+      target: popup,
+      // IMPORTANT: This tells the popup where to send messages
+      // Must match the dApp origin (NOT Sphere origin)
+      targetOrigin: dAppOrigin
     }),
     dapp: {
       name: 'UCT Pay Link',
