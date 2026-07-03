@@ -5,9 +5,14 @@ import {
   type SphereConnectMessage,
   isSphereConnectMessage,
 } from '@unicitylabs/sphere-sdk/connect'
+import { PostMessageTransport } from '@unicitylabs/sphere-sdk/connect/browser'
 
 export const SPHERE_ORIGIN = 'https://sphere.unicity.network'
 export const SPHERE_AGENT_BASE = `${SPHERE_ORIGIN}/agents/custom`
+export const SPHERE_CONNECT_URL = `${SPHERE_ORIGIN}/connect`
+
+/** sessionStorage key used to resume a popup connection across reloads (see CONNECT.md → "Popup Mode (P3) — Session Resume"). */
+const POPUP_SESSION_KEY = 'sphere-connect-popup-session'
 
 /**
  * True when this page is running inside Sphere's own iframe (i.e. someone
@@ -98,4 +103,102 @@ export async function connectSphereWallet(dappDescription: string): Promise<stri
   }
 
   return address
+}
+
+// ---------------------------------------------------------------------------
+// Popup mode (P3) — used when this page is a normal browser tab, not embedded
+// inside Sphere's iframe. Opens sphere.unicity.network/connect in a small
+// centered popup (same "Sign Message" approval dialog Sphere shows anywhere
+// else) and talks to it over window.postMessage instead of window.parent.
+// See Sphere's CONNECT.md → "Connection Modes" for the full P1/P2/P3 spec.
+// ---------------------------------------------------------------------------
+
+/**
+ * Opens Sphere's own /connect page in a small centered popup window. Throws
+ * if the browser blocked the popup (must be called directly from a user
+ * gesture, e.g. a button's onClick, or the browser will block it).
+ */
+export function openSpherePopup(): Window {
+  const width = 420
+  const height = 640
+  const left = Math.round(window.screenX + (window.outerWidth - width) / 2)
+  const top = Math.round(window.screenY + (window.outerHeight - height) / 2)
+
+  const url = `${SPHERE_CONNECT_URL}?origin=${encodeURIComponent(window.location.origin)}`
+  const popup = window.open(
+    url,
+    'sphere-connect',
+    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`,
+  )
+
+  if (!popup) {
+    throw new Error('Popup blocked — please allow popups for this site and try again.')
+  }
+
+  return popup
+}
+
+/** Creates a ConnectClient wired to a popup window instead of a parent iframe. */
+export function createPopupClient(dappDescription: string, popup: Window, resumeSessionId?: string) {
+  return new ConnectClient({
+    transport: PostMessageTransport.forClient({ target: popup, targetOrigin: SPHERE_ORIGIN }),
+    dapp: {
+      name: 'UCT Pay Link',
+      description: dappDescription,
+      url: window.location.origin,
+    },
+    network: SPHERE_NETWORKS.testnet2,
+    ...(resumeSessionId ? { resumeSessionId } : {}),
+  })
+}
+
+export function saveSpherePopupSession(sessionId: string) {
+  sessionStorage.setItem(POPUP_SESSION_KEY, sessionId)
+}
+
+export function clearSpherePopupSession() {
+  sessionStorage.removeItem(POPUP_SESSION_KEY)
+}
+
+export function getSavedSpherePopupSession(): string | null {
+  return sessionStorage.getItem(POPUP_SESSION_KEY)
+}
+
+/**
+ * Connects to Sphere Wallet via a popup window — the fallback used whenever
+ * this page is a normal tab rather than something opened inside Sphere's own
+ * iframe. Opens sphere.unicity.network/connect, which shows the same
+ * "Sign Message" approval dialog as any other Sphere connect flow, and
+ * resolves with the linked identity once the user approves in that popup.
+ *
+ * Note: per Sphere's popup-mode spec, the popup must stay open for the
+ * connection to keep working — closing it ends the session. The returned
+ * `popup` handle lets the caller decide when to close it (e.g. right after a
+ * one-off payment intent finishes, or keep it open for a longer session).
+ */
+export async function connectSphereWalletViaPopup(dappDescription: string): Promise<{
+  address: string
+  client: ConnectClient
+  popup: Window
+}> {
+  const popup = openSpherePopup()
+
+  try {
+    const savedSession = getSavedSpherePopupSession() ?? undefined
+    const client = createPopupClient(dappDescription, popup, savedSession)
+    const { identity, sessionId } = await client.connect()
+    const address = extractIdentityAddress(identity)
+
+    if (!address) {
+      throw new Error('Sphere Wallet did not return a usable identity.')
+    }
+
+    if (sessionId) saveSpherePopupSession(sessionId)
+
+    return { address, client, popup }
+  } catch (err) {
+    clearSpherePopupSession()
+    popup.close()
+    throw err
+  }
 }

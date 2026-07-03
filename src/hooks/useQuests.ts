@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { QUEST_MAP, QUESTS, getTier, type Quest, type QuestId } from '../config/quests'
-import { connectSphereWallet, isInsideSphere } from '../lib/sphereConnect'
+import { connectSphereWallet, connectSphereWalletViaPopup, isInsideSphere } from '../lib/sphereConnect'
 
 interface QuestState {
   completed: QuestId[]
@@ -190,21 +190,25 @@ export function useQuests() {
   }, [])
 
   /**
-   * Connects to Sphere Wallet through the same postMessage iframe bridge
-   * PayPage uses (see src/lib/sphereConnect.ts), then links the returned
-   * identity to this profile via link_wallet_identity() so quest progress
-   * follows the wallet instead of resetting per device/browser. Only works
-   * when this page is loaded inside Sphere's iframe — callers should check
-   * `canConnectWallet` first and, if false, point the user at
-   * sphereAgentUrl() to open the app inside Sphere (same fallback PayPage
-   * shows for payments).
+   * Connects to Sphere Wallet and links the returned identity to this
+   * profile via link_wallet_identity() so quest progress follows the wallet
+   * instead of resetting per device/browser.
+   *
+   * Uses the postMessage iframe bridge (src/lib/sphereConnect.ts) when this
+   * page is loaded inside Sphere's own iframe; otherwise falls back to
+   * opening Sphere's /connect page in a popup window (same "Sign Message"
+   * approval dialog Sphere shows everywhere else) — see
+   * connectSphereWalletViaPopup(). Either way the user approves the
+   * connection and this resolves with a usable wallet address.
    */
   const connectWallet = useCallback(async () => {
     setWalletStatus('connecting')
     setWalletError('')
 
     try {
-      const address = await connectSphereWallet('Link quest progress to your wallet')
+      const address = isInsideSphere()
+        ? await connectSphereWallet('Link quest progress to your wallet')
+        : (await connectSphereWalletViaPopup('Link quest progress to your wallet')).address
 
       setWalletStatus('linking')
       const { data, error } = await supabase
@@ -247,8 +251,8 @@ export function useQuests() {
     walletStatus,
     walletError,
     connectWallet,
-    /** Whether connectWallet() can actually run right now (i.e. we're inside Sphere's iframe). */
-    canConnectWallet: isInsideSphere(),
+    /** connectWallet() always works now — inside Sphere's iframe it uses the iframe bridge, otherwise it opens the Sphere connect popup. */
+    canConnectWallet: true,
   }
 }
 
