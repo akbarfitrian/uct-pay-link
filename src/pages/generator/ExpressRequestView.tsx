@@ -182,14 +182,8 @@ export default function ExpressRequestView({ onBack }: ExpressRequestViewProps) 
         {payLink && (
           <div className="preview-section">
             <div className="preview-card">
-              <div className="alert alert-success">✅ Payment link generated successfully.</div>
-
               <div className="preview-header">
                 <span className="preview-title">Payment Link</span>
-              </div>
-
-              <div className="preview-link-box">
-                <span className="preview-link-text">{payLink}</span>
               </div>
 
               <div className="qr-area">
@@ -211,20 +205,10 @@ export default function ExpressRequestView({ onBack }: ExpressRequestViewProps) 
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Network</span>
-                  <span className="detail-value"><span className="badge">Testnet Unicity V2</span></span>
+                  <span className="detail-value"><span className="badge">Unicity Testnet V2</span></span>
                 </div>
               </div>
-
-              <div className="ticket-divider"></div>
-
-              <div className="preview-total">
-                <span className="preview-total-label">Total to Receive</span>
-                <span className="preview-total-value">
-                  {amount || '0'}
-                  <span className="preview-total-unit">{coin}</span>
-                </span>
-              </div>
-
+              
               <button className="btn btn-copy" onClick={handleCopy}>
                 {copied ? 'Copied' : 'Copy Link'}
               </button>

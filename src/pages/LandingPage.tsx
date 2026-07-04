@@ -73,7 +73,7 @@ export default function LandingPage() {
       <nav className="landing-nav">
         <Link to="/" className="landing-logo">
           <img src="/logo.png" alt="Unicity Pay Link" className="landing-logo-icon" />
-          <span>UNICITY PAY LINK</span>
+          <span>Unicity Pay Link</span>
         </Link>
         <div className="landing-nav-links">
           <ThemeToggle />
@@ -86,7 +86,6 @@ export default function LandingPage() {
       {/* Hero */}
       <header className="hero">
         <div className="hero-copy">
-          <p className="hero-eyebrow">Powered by Unicity Labs</p>
           <h1 className="hero-headline">
             Massive Crypto Invoicing for Businesses, Simplified.
           </h1>

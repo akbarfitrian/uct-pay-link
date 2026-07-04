@@ -66,7 +66,7 @@ export default function WalletConnect() {
     <div className="wallet-connect">
       <a href={openInSphereUrl} target="_blank" rel="noreferrer" className="wallet-connect-btn wallet-connect-link">
         <Wallet size={14} />
-        Open in Sphere Wallet to save progress
+        Connect Wallet
       </a>
     </div>
   )
