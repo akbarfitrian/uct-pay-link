@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { QUEST_MAP, QUESTS, getTier, type Quest, type QuestId } from '../config/quests'
 import { connectSphereWallet, isInsideSphere } from '../lib/sphereConnect'
+import { consumeHandoff } from '../lib/sessionHandoff'
 
 interface QuestState {
   completed: QuestId[]
@@ -46,6 +47,16 @@ export type WalletStatus = 'idle' | 'connecting' | 'linking' | 'linked' | 'error
  * the same).
  */
 async function ensureSignedIn(): Promise<void> {
+  // If the URL is carrying a session handed off from a different storage
+  // partition (see sessionHandoff.ts — this is how "Open in Sphere Wallet
+  // to save progress" survives the standalone-tab -> Sphere-iframe jump),
+  // resume that session before deciding whether we need a fresh anonymous
+  // one. This must run first, or the mismatched-points bug comes right
+  // back: getSession() below would find nothing in this partition and
+  // sign in as a brand new (empty) anonymous user instead.
+  const resumed = await consumeHandoff()
+  if (resumed) return
+
   const {
     data: { session },
   } = await supabase.auth.getSession()

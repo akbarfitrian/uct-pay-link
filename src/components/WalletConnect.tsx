@@ -1,6 +1,8 @@
 import { Check, Loader2, Wallet } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useQuestsContext } from '../context/QuestsContext'
 import { sphereAgentUrl } from '../lib/sphereConnect'
+import { withHandoff } from '../lib/sessionHandoff'
 
 /**
  * Lets the user connect Sphere Wallet (same iframe postMessage flow as
@@ -11,6 +13,24 @@ export default function WalletConnect() {
   const { walletAddress, walletStatus, walletError, connectWallet, canConnectWallet } = useQuestsContext()
 
   const isBusy = walletStatus === 'connecting' || walletStatus === 'linking'
+
+  // Plain link by default so it's clickable immediately; upgraded in-place
+  // (usually within a tick) to a link carrying this session's tokens, so
+  // the points earned in *this* tab actually follow into the Sphere iframe
+  // instead of starting from a fresh, empty anonymous user there. See
+  // sessionHandoff.ts for why this hand-carry is necessary at all.
+  const [openInSphereUrl, setOpenInSphereUrl] = useState(() => sphereAgentUrl(window.location.href))
+
+  useEffect(() => {
+    if (canConnectWallet) return // already inside Sphere, this link isn't shown
+    let cancelled = false
+    withHandoff(window.location.href).then((urlWithSession) => {
+      if (!cancelled) setOpenInSphereUrl(sphereAgentUrl(urlWithSession))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [canConnectWallet])
 
   if (walletStatus === 'linked' && walletAddress) {
     return (
@@ -42,8 +62,6 @@ export default function WalletConnect() {
   // Not inside Sphere's iframe — same fallback PayPage uses for payments:
   // point the user at the Sphere agent URL, which reopens this page inside
   // Sphere so the iframe connect flow above becomes available.
-  const openInSphereUrl = sphereAgentUrl(window.location.href)
-
   return (
     <div className="wallet-connect">
       <a href={openInSphereUrl} target="_blank" rel="noreferrer" className="wallet-connect-btn wallet-connect-link">
