@@ -5,6 +5,7 @@ import PayPage from './pages/PayPage'
 import Footer from './components/Footer'
 import ThemeToggle from './components/ThemeToggle'
 import QuestWidget from './components/QuestWidget'
+import Logo from './components/Logo'
 import './App.css'
 
 /** Shared chrome (nav + footer) for the working app screens */
@@ -13,7 +14,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       <nav className="navbar">
         <Link to="/" className="logo" style={{ textDecoration: 'none' }}>
-          <img src="/logo.png" alt="UCT Pay Link" className="logo-icon" />
+          <Logo className="logo-icon" />
           Unicity Pay Link
         </Link>
         <div className="nav-right">

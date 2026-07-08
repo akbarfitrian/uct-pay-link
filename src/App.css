@@ -4,12 +4,17 @@
 :root {
   color-scheme: light;
 
-  /* Brand blue */
-  --primary-blue:        #2563EB;
-  --primary-blue-dark:   #1D4ED8;
-  --primary-blue-light:  #3B82F6;
-  --primary-blue-tint:   #EFF4FF;
-  --primary-blue-tint-2: #DBEAFE;
+  /* Brand accent — monochrome */
+  --accent:        #18181B;
+  --accent-dark:   #000000;
+  --accent-light:  #52525B;
+  --accent-tint:   #F4F4F5;
+  --accent-tint-2: #E4E4E7;
+  /* Text/icon color placed on top of an accent-colored surface (buttons, badges) */
+  --on-accent: #FFFFFF;
+  /* Focus ring + logo mark, kept separate from --ink so the brand mark stays pure black/white */
+  --focus-ring: rgba(0, 0, 0, 0.12);
+  --logo-mark: #000000;
 
   /* Neutrals (light theme) */
   --bg-page:         #F5F7FB;
@@ -23,7 +28,7 @@
   --text-secondary:  #64748B;
   --text-hint:       #94A3B8;
 
-  /* Status */
+  /* Status (kept in color — success/failure clarity matters in a payments app) */
   --success:       #16A34A;
   --success-tint:  #ECFDF5;
   --danger:        #DC2626;
@@ -35,7 +40,8 @@
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
   --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
   --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.10);
-  --shadow-blue: 0 8px 20px rgba(37, 99, 235, 0.25);
+  --shadow-accent: 0 8px 20px rgba(0, 0, 0, 0.18);
+  --shadow-accent-hover: 0 10px 24px rgba(0, 0, 0, 0.24);
 
   --radius-lg: 20px;
   --radius-md: 12px;
@@ -46,23 +52,27 @@
 html.dark {
   color-scheme: dark;
 
-  /* Brand blue: brighter indigo/blue for contrast on dark surfaces */
-  --primary-blue:        #3B82F6;
-  --primary-blue-dark:   #2563EB;
-  --primary-blue-light:  #60A5FA;
-  --primary-blue-tint:   rgba(59, 130, 246, 0.14);
-  --primary-blue-tint-2: rgba(59, 130, 246, 0.22);
+  /* Brand accent — inverts to white on dark surfaces */
+  --accent:        #FAFAFA;
+  --accent-dark:   #E4E4E7;
+  --accent-light:  #A1A1AA;
+  --accent-tint:   rgba(255, 255, 255, 0.08);
+  --accent-tint-2: rgba(255, 255, 255, 0.16);
+  /* Text/icon color placed on top of an accent-colored surface (buttons, badges) */
+  --on-accent: #0A0A0A;
+  --focus-ring: rgba(255, 255, 255, 0.16);
+  --logo-mark: #FFFFFF;
 
-  /* Neutrals (dark theme) — layered depth, never pure black */
-  --bg-page:         #0B0F19;
-  --bg-card:         #111827;
-  --bg-input:        #0F172A;
-  --bg-subtle:       #1E293B;
-  --border-default:  #334155;
-  --border-light:    #1E293B;
-  --ink:             #F8FAFC;
-  --text-secondary:  #94A3B8;
-  --text-hint:       #64748B;
+  /* Neutrals (dark theme) — true grayscale, no blue/navy undertone */
+  --bg-page:         #09090B;
+  --bg-card:         #18181B;
+  --bg-input:        #141416;
+  --bg-subtle:       #27272A;
+  --border-default:  #3F3F46;
+  --border-light:    #27272A;
+  --ink:             #FAFAFA;
+  --text-secondary:  #A1A1AA;
+  --text-hint:       #71717A;
 
   /* Status */
   --success:       #22C55E;
@@ -76,7 +86,8 @@ html.dark {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.55);
-  --shadow-blue: 0 8px 20px rgba(59, 130, 246, 0.35);
+  --shadow-accent: 0 8px 20px rgba(255, 255, 255, 0.14);
+  --shadow-accent-hover: 0 10px 24px rgba(255, 255, 255, 0.20);
 }
 
 /* Smooth, deliberate transition between Light and Night Mode */
@@ -174,8 +185,8 @@ body {
   display: inline-block;
   width: 32px;
   height: 32px;
-  object-fit: contain;
   flex-shrink: 0;
+  color: var(--logo-mark);
 }
 
 .nav-links {
@@ -191,7 +202,7 @@ body {
   transition: color 0.2s;
 }
 
-.nav-links a:hover { color: var(--primary-blue); }
+.nav-links a:hover { color: var(--accent); }
 
 /* Right-hand nav cluster: nav links + theme toggle grouped together */
 .nav-right {
@@ -219,9 +230,9 @@ body {
 }
 
 .theme-toggle:hover {
-  color: var(--primary-blue);
-  border-color: var(--primary-blue-tint-2);
-  background: var(--primary-blue-tint);
+  color: var(--accent);
+  border-color: var(--accent-tint-2);
+  background: var(--accent-tint);
   transform: translateY(-1px);
 }
 
@@ -319,8 +330,8 @@ body {
 .form-textarea::placeholder { color: var(--text-hint); }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .form-select {
@@ -360,15 +371,15 @@ body {
 }
 
 .btn-primary {
-  background: var(--primary-blue);
-  color: #fff;
-  box-shadow: var(--shadow-blue);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-blue-dark);
+  background: var(--accent-dark);
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.32);
+  box-shadow: var(--shadow-accent-hover);
 }
 .btn-primary:active:not(:disabled) { transform: translateY(0); }
 .btn-primary:disabled {
@@ -392,21 +403,21 @@ body {
 }
 
 .btn-copy {
-  background: var(--primary-blue);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   margin-top: 0.5rem;
   padding: 0.7rem 1rem;
-  box-shadow: var(--shadow-blue);
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-copy:hover {
-  background: var(--primary-blue-dark);
+  background: var(--accent-dark);
   transform: translateY(-1px);
 }
 
 /* Preview Section */
 .preview-section {
-  background: var(--primary-blue-tint);
+  background: var(--accent-tint);
   border-radius: var(--radius-lg);
   padding: clamp(1.1rem, 2.5vw, 1.5rem);
   border: 1px solid var(--border-light);
@@ -478,7 +489,7 @@ body {
 .preview-link-text {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 0.8rem;
-  color: var(--primary-blue);
+  color: var(--accent);
   font-weight: 500;
   line-height: 1.5;
 }
@@ -546,8 +557,8 @@ body {
 
 .badge {
   display: inline-block;
-  background: var(--primary-blue-tint-2);
-  color: var(--primary-blue-dark);
+  background: var(--accent-tint-2);
+  color: var(--accent-dark);
   padding: 0.28rem 0.65rem;
   border-radius: 6px;
   font-size: 0.75rem;
@@ -571,7 +582,7 @@ body {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--primary-blue-tint);
+  background: var(--accent-tint);
   border: 1px solid var(--border-light);
 }
 
@@ -602,7 +613,7 @@ body {
 .preview-total-unit {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--primary-blue);
+  color: var(--accent);
   margin-left: 0.3rem;
 }
 
@@ -666,7 +677,7 @@ body {
   gap: 1rem;
   margin-bottom: 0.75rem;
   padding: 1.5rem 0;
-  background: var(--primary-blue-tint);
+  background: var(--accent-tint);
   border-radius: var(--radius-md);
 }
 
@@ -691,7 +702,7 @@ body {
 
 .amount-symbol {
   font-size: 1rem;
-  color: var(--primary-blue);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -743,8 +754,8 @@ body {
 
 .network-badge {
   display: inline-block;
-  background: var(--primary-blue-tint-2);
-  color: var(--primary-blue-dark);
+  background: var(--accent-tint-2);
+  color: var(--accent-dark);
   padding: 0.35rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;
@@ -772,7 +783,7 @@ body {
 }
 
 .status-step.active {
-  color: var(--primary-blue);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -789,7 +800,7 @@ body {
 }
 
 .status-step.active .step-dot {
-  background: var(--primary-blue);
+  background: var(--accent);
   animation: pulse 1s infinite;
 }
 
@@ -843,14 +854,14 @@ body {
   flex: 1;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 0.75rem;
-  color: var(--primary-blue);
+  color: var(--accent);
   word-break: break-all;
   line-height: 1.4;
 }
 
 .copy-btn {
-  background: var(--primary-blue);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -863,7 +874,7 @@ body {
 }
 
 .copy-btn:hover {
-  background: var(--primary-blue-dark);
+  background: var(--accent-dark);
 }
 
 .sphere-link-section {
@@ -886,7 +897,7 @@ body {
 .tx-summary {
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--primary-blue);
+  color: var(--accent);
   font-weight: 600;
   user-select: none;
 }
@@ -941,14 +952,14 @@ body {
 }
 
 .footer-brand-link {
-  color: var(--primary-blue);
+  color: var(--accent);
   font-weight: 600;
   text-decoration: none;
 }
 
 .footer-brand-link:hover {
   text-decoration: underline;
-  color: var(--primary-blue-dark);
+  color: var(--accent-dark);
 }
 
 .footer-links {
@@ -971,8 +982,8 @@ body {
 }
 
 .footer-link:hover {
-  color: var(--primary-blue);
-  background: var(--primary-blue-tint-2);
+  color: var(--accent);
+  background: var(--accent-tint-2);
 }
 
 /* ============= BILLING DASHBOARD: HOME MENU ============= */
@@ -1032,7 +1043,7 @@ body {
 .menu-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--primary-blue-tint-2);
+  border-color: var(--accent-tint-2);
 }
 
 .menu-card:active {
@@ -1046,14 +1057,14 @@ body {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-md);
-  background: var(--primary-blue-tint);
-  color: var(--primary-blue);
+  background: var(--accent-tint);
+  color: var(--accent);
   margin-bottom: 1.25rem;
   transition: background-color 0.22s ease, transform 0.22s ease;
 }
 
 .menu-card:hover .menu-card-icon {
-  background: var(--primary-blue-tint-2);
+  background: var(--accent-tint-2);
   transform: scale(1.06);
 }
 
@@ -1079,7 +1090,7 @@ body {
   gap: 0.35rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--primary-blue);
+  color: var(--accent);
 }
 
 /* ============= SHARED: back-to-menu button & success alert ============= */
@@ -1107,7 +1118,7 @@ body {
 }
 
 .btn-back:hover {
-  color: var(--primary-blue);
+  color: var(--accent);
 }
 
 .alert-success {
@@ -1303,7 +1314,7 @@ body {
   border-radius: 6px;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 0.72rem;
-  color: var(--primary-blue);
+  color: var(--accent);
   background: var(--bg-subtle);
 }
 
@@ -1316,13 +1327,13 @@ body {
   flex-shrink: 0;
   border: none;
   border-radius: 6px;
-  background: var(--primary-blue);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   cursor: pointer;
 }
 
 .link-copy-btn:hover {
-  background: var(--primary-blue-dark);
+  background: var(--accent-dark);
 }
 
 .bulk-block-notice {
@@ -1373,16 +1384,16 @@ body {
 }
 
 .quest-badge:hover {
-  color: var(--primary-blue);
-  border-color: var(--primary-blue-tint-2);
-  background: var(--primary-blue-tint);
+  color: var(--accent);
+  border-color: var(--accent-tint-2);
+  background: var(--accent-tint);
   transform: translateY(-1px);
 }
 
 .quest-badge:active { transform: translateY(0); }
 
 .quest-badge svg {
-  color: var(--primary-blue);
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -1480,8 +1491,8 @@ body {
 }
 
 .quest-panel-close:hover {
-  color: var(--primary-blue);
-  background: var(--primary-blue-tint);
+  color: var(--accent);
+  background: var(--accent-tint);
 }
 
 .quest-progress-track {
@@ -1495,7 +1506,7 @@ body {
 .quest-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--primary-blue);
+  background: var(--accent);
   transition: width 0.4s ease;
 }
 
@@ -1519,8 +1530,8 @@ body {
 }
 
 .quest-item-done {
-  border-color: var(--primary-blue-tint-2);
-  background: var(--primary-blue-tint);
+  border-color: var(--accent-tint-2);
+  background: var(--accent-tint);
 }
 
 .quest-item-icon {
@@ -1536,8 +1547,8 @@ body {
 }
 
 .quest-item-done .quest-item-icon {
-  background: var(--primary-blue);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .quest-item-body {
@@ -1555,7 +1566,7 @@ body {
 }
 
 .quest-item-done .quest-item-title {
-  color: var(--primary-blue-dark);
+  color: var(--accent-dark);
 }
 
 .quest-item-desc {
@@ -1572,7 +1583,7 @@ body {
 }
 
 .quest-item-done .quest-item-points {
-  color: var(--primary-blue);
+  color: var(--accent);
 }
 
 .quest-panel-footnote {
@@ -1598,10 +1609,10 @@ body {
   width: 100%;
   height: 36px;
   padding: 0 0.75rem;
-  border: 1px solid var(--primary-blue-tint-2);
+  border: 1px solid var(--accent-tint-2);
   border-radius: var(--radius-md);
-  background: var(--primary-blue-tint);
-  color: var(--primary-blue-dark);
+  background: var(--accent-tint);
+  color: var(--accent-dark);
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 600;
@@ -1611,7 +1622,7 @@ body {
 }
 
 .wallet-connect-btn:hover:not(:disabled) {
-  background: var(--primary-blue-tint-2);
+  background: var(--accent-tint-2);
 }
 
 .wallet-connect-btn:disabled {
@@ -1649,8 +1660,8 @@ body {
   height: 22px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: var(--primary-blue);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .wallet-connect-text {
@@ -1673,7 +1684,7 @@ body {
   padding: 0.75rem 1rem;
   max-width: calc(100vw - 3rem);
   background: var(--bg-card);
-  border: 1px solid var(--primary-blue-tint-2);
+  border: 1px solid var(--accent-tint-2);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   animation: quest-toast-in 0.25s ease;
@@ -1687,8 +1698,8 @@ body {
   height: 34px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: var(--primary-blue-tint);
-  color: var(--primary-blue);
+  background: var(--accent-tint);
+  color: var(--accent);
 }
 
 .quest-toast-body {
@@ -1706,7 +1717,7 @@ body {
 .quest-toast-points {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--primary-blue);
+  color: var(--accent);
 }
 
 @keyframes quest-toast-in {

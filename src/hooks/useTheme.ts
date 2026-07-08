@@ -26,6 +26,9 @@ export function useTheme() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     window.localStorage.setItem(STORAGE_KEY, theme)
+
+    const favicon = document.getElementById('favicon') as HTMLLinkElement | null
+    if (favicon) favicon.href = theme === 'dark' ? '/favicon-dark.png' : '/favicon-light.png'
   }, [theme])
 
   const toggleTheme = useCallback(() => {

@@ -29,7 +29,8 @@
 .landing-logo-icon {
   width: 30px;
   height: 30px;
-  object-fit: contain;
+  flex-shrink: 0;
+  color: var(--logo-mark);
 }
 
 .landing-logo span {
@@ -54,7 +55,7 @@
 }
 
 .landing-nav-links > a:not(.landing-btn):hover {
-  color: var(--primary-blue);
+  color: var(--accent);
 }
 
 /* ---------- Buttons ---------- */
@@ -74,15 +75,15 @@
 }
 
 .landing-btn-primary {
-  background: var(--primary-blue);
-  color: #fff;
-  box-shadow: var(--shadow-blue);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .landing-btn-primary:hover {
-  background: var(--primary-blue-dark);
+  background: var(--accent-dark);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-blue);
+  box-shadow: var(--shadow-accent);
 }
 
 .landing-btn-nav {
@@ -112,8 +113,8 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--primary-blue);
-  background: var(--primary-blue-tint);
+  color: var(--accent);
+  background: var(--accent-tint);
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
   margin-bottom: 1.5rem;
@@ -170,7 +171,7 @@
   height: 92%;
   top: 22px;
   right: -14px;
-  background: var(--primary-blue-tint);
+  background: var(--accent-tint);
   border-radius: var(--radius-lg);
   transform: rotate(4deg);
 }
@@ -324,7 +325,7 @@
 .feature-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  border-color: var(--primary-blue-tint-2);
+  border-color: var(--accent-tint-2);
 }
 
 .feature-icon {
@@ -334,8 +335,8 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  background: var(--primary-blue-tint);
-  color: var(--primary-blue);
+  background: var(--accent-tint);
+  color: var(--accent);
   margin-bottom: 1.2rem;
 }
 
@@ -365,7 +366,7 @@
   gap: 1.75rem;
   align-items: flex-start;
   background: var(--bg-card);
-  border: 1.5px dashed var(--primary-blue-tint-2);
+  border: 1.5px dashed var(--accent-tint-2);
   border-radius: var(--radius-lg);
   padding: 2.75rem;
   box-shadow: var(--shadow-sm);
@@ -379,8 +380,8 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  background: var(--primary-blue);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .roadmap-badge {
@@ -389,8 +390,8 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--primary-blue);
-  background: var(--primary-blue-tint);
+  color: var(--accent);
+  background: var(--accent-tint);
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
   margin-bottom: 0.85rem;

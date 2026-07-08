@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import Footer from '../components/Footer'
 import ThemeToggle from '../components/ThemeToggle'
+import Logo from '../components/Logo'
 import './LandingPage.css'
 
 const FEATURES = [
@@ -72,7 +73,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="landing-nav">
         <Link to="/" className="landing-logo">
-          <img src="/logo.png" alt="Unicity Pay Link" className="landing-logo-icon" />
+          <Logo className="landing-logo-icon" />
           <span>Unicity Pay Link</span>
         </Link>
         <div className="landing-nav-links">
