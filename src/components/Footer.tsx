@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="footer-links">
           <span className="footer-copyright">Unicity Pay Link © 2026</span>
           <a 
-            href="https://github.com/akbarfitrian"
+            href="https://github.com/akbarfitrian/uct-pay-link"
             target="_blank"
             rel="noreferrer"
             className="footer-link"
