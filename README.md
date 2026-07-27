@@ -9,7 +9,7 @@ The application runs as a static single-page app (React + Vite + TypeScript) and
 - **Link generation** — a dashboard for creating one payment link at a time (Express Request) or generating many at once from pasted spreadsheet data (Bulk Request).
 - **Payment execution** — a `/pay` page that resolves a link's parameters, connects to Sphere Wallet, and submits the transfer intent on Unicity Testnet2.
 
-A lightweight quest and points system, backed by Supabase, sits alongside these flows to encourage users to try both request modes and multiple assets.
+A lightweight quest and points system, stored locally in the browser, sits alongside these flows to encourage users to try both request modes and multiple assets.
 
 ## Core Features
 
@@ -20,7 +20,7 @@ A lightweight quest and points system, backed by Supabase, sits alongside these 
 - Live USD pricing per asset via CoinGecko, shown alongside the amount
 - Direct share to WhatsApp and Telegram from a generated link
 - Light and dark ("Night Mode") themes, following system preference on first load and persisted afterward
-- Quests and points that track usage (first link generated, link copied, bulk batch generated, multiple assets used, etc.), with tiered ranks and an optional wallet-linked profile
+- Quests and points that track usage (first link generated, link copied, bulk batch generated, multiple assets used, etc.), with tiered ranks and an optional connected-wallet label
 
 ## Request Modes
 
@@ -85,16 +85,16 @@ Errors are pattern-matched to give a specific message for rejected transactions,
 | `coin`    | Yes      | Token symbol (UCT, USDU, USDC, SOL, ETH, BTC) |
 | `note`    | No       | Optional message shown to the payer |
 
-## Quests, Points, and Wallet Linking
+## Quests, Points, and Wallet Connection
 
-A points system tracks how a user interacts with the generator and is backed by Supabase (anonymous auth, Postgres, and RLS-protected tables).
+A points system tracks how a user interacts with the generator. It's local-only — everything lives in this browser's `localStorage`, no backend required.
 
-- **Anonymous accounts.** On first visit, an anonymous Supabase session is created for the browser with no login step. This gives each visitor a stable `auth.uid()` so progress can be attributed to them without a signup wall.
-- **Quests are defined client-side** in `src/config/quests.ts` (id, title, description, and point value) but **awarded server-side** through `SECURITY DEFINER` Postgres functions, so a tampered client cannot grant itself points directly. Current quests cover generating a first link, copying a link, completing a bulk batch, generating a large batch, using more than one asset, and trying both request modes.
-- **Idempotent completion.** A composite primary key on `(user_id, quest_id)` in `quest_completions`, combined with `INSERT ... ON CONFLICT DO NOTHING`, guarantees a quest can never be double-awarded, even under concurrent calls.
-- **Recomputed totals.** `profiles.total_points` is always recalculated as the sum of a user's completions within the same transaction, rather than incremented — so the cached total can never drift from the underlying records.
-- **Wallet linking.** From inside Sphere's iframe, a user can connect their Sphere Wallet to attach their points/quest history to a nametag instead of an anonymous session. If the wallet was already linked to an earlier anonymous profile (e.g. from a different device), that profile's history is merged in additively.
-- **Cross-context session handoff.** Because Sphere embeds the app in a third-party iframe, browsers partition `localStorage` separately for the standalone tab and the embedded view, which would otherwise split a single visitor's progress into two accounts. The app carries the Supabase session token across via a single-use URL fragment (never sent to any server) so the same identity — and the same points — follow the user into Sphere.
+> This app previously stored progress in Supabase (anonymous auth, Postgres, RLS-protected tables — see `MIGRATION_NOTES.md` for that design). That project has since been torn down, and progress reverted to being purely client-side. The old migration SQL is kept in `supabase/migrations/` for reference only — it isn't applied or required to run the app today.
+
+- **Quests are defined client-side** in `src/config/quests.ts` (id, title, description, and point value). `src/hooks/useQuests.ts` tracks which quest ids are completed and recomputes the total as the sum of `points` over those ids — never an incremented counter, so it can't drift. Current quests cover generating a first link, copying a link, completing a bulk batch, generating a large batch, using more than one asset, and trying both request modes.
+- **Per-browser, not per-account.** There's no login and no server — progress is tied to whatever browser/device generated it, saved under a single `localStorage` key (`uct-pay-link:quest-state`).
+- **Wallet connect is a local label, not a sync.** From inside Sphere's iframe, a user can connect their Sphere Wallet; the app remembers that address alongside this browser's progress and shows it in the quest panel. It does **not** merge in history from another device — that would need a backend to look up profiles by wallet, which this app no longer has.
+- **Cross-context handoff.** Because Sphere embeds the app in a third-party iframe, browsers partition `localStorage` separately for the standalone tab and the embedded view, which would otherwise make a visitor's progress look reset inside Sphere. The app carries the current quest state itself across via a single-use URL fragment (never sent to any server) so the same progress follows the user into Sphere.
 
 ## Light Mode and Night Mode
 
@@ -129,19 +129,18 @@ uct-pay-link/
 │   │   ├── QuestWidget.tsx            Points/tier badge in the navbar
 │   │   ├── QuestPanel.tsx             Quest list and wallet-link panel
 │   │   ├── QuestToast.tsx             "Quest completed" notification
-│   │   └── WalletConnect.tsx          Connects Sphere Wallet to link quest progress
+│   │   └── WalletConnect.tsx          Connects Sphere Wallet to label local quest progress
 │   ├── config/
 │   │   ├── coins.ts                   Supported assets (UCT, USDU, USDC, SOL, ETH, BTC)
 │   │   └── quests.ts                  Quest catalog, point values, and tiers
 │   ├── context/
 │   │   └── QuestsContext.tsx          App-wide quest/points state
 │   ├── hooks/
-│   │   ├── useQuests.ts               Supabase-backed quest state, wallet linking
+│   │   ├── useQuests.ts               localStorage-backed quest state, wallet label
 │   │   └── useTheme.ts                Theme state and localStorage persistence
 │   ├── lib/
-│   │   ├── supabaseClient.ts          Supabase client singleton
 │   │   ├── sphereConnect.ts           Sphere iframe transport, ConnectClient factory
-│   │   └── sessionHandoff.ts          Carries the Supabase session across iframe storage partitions
+│   │   └── sessionHandoff.ts          Carries quest state across iframe storage partitions
 │   ├── services/
 │   │   └── coingeckoService.ts        Live USD price lookup via CoinGecko
 │   └── pages/
@@ -154,7 +153,7 @@ uct-pay-link/
 │           ├── BulkRequestView.tsx    Batch payment link generator
 │           ├── csvUtils.ts            Parsing, validation, CSV template/export helpers
 │           └── types.ts               Shared types for bulk rows and validation
-├── supabase/
+├── supabase/                          Historical only — not used by the app currently (see note above)
 │   └── migrations/
 │       ├── 0001_points_system.sql     Quests, profiles, completions, RLS, RPCs
 │       ├── 0002_wallet_link.sql       Wallet-linked profiles and merge logic
@@ -174,18 +173,9 @@ uct-pay-link/
 npm install
 ```
 
-### 2. Configure environment variables
+### 2. Run the development server
 
-Create a `.env` file (already gitignored) with your Supabase project's URL and anon key:
-
-```bash
-VITE_SUPABASE_URL=your-project-url
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
-
-Anonymous sign-in must be enabled in the Supabase dashboard under **Authentication → Sign In / Providers → Anonymous Sign-Ins**. Apply the SQL files in `supabase/migrations/` in order (via the SQL Editor or `supabase db push`) before running the app — see `MIGRATION_NOTES.md` for details on what each migration adds.
-
-### 3. Run the development server
+No environment variables or backend setup needed — quest progress is stored in the browser.
 
 ```bash
 npm run dev
@@ -193,7 +183,7 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
-### 4. Build
+### 3. Build
 
 ```bash
 npm run build
@@ -222,4 +212,4 @@ The app deploys as a static SPA (`vercel.json` handles client-side routing rewri
 
 ---
 
-Built with React, Vite, TypeScript, `@unicitylabs/sphere-sdk`, and Supabase.
+Built with React, Vite, TypeScript, and `@unicitylabs/sphere-sdk`.

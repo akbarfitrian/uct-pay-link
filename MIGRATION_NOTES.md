@@ -1,3 +1,9 @@
+> **Status: historical / not in use.** The Supabase project described below has
+> been deleted, and `src/hooks/useQuests.ts` has been reverted to a
+> `localStorage`-only implementation (no backend, no env vars needed). The SQL
+> in `supabase/migrations/` is kept for reference only. This doc is left as-is
+> in case Supabase support gets re-added later.
+
 # Migrating uct-pay-link's points system to Supabase
 
 ## What I found in the repo first

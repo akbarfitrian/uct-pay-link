@@ -6,18 +6,21 @@ import { withHandoff } from '../lib/sessionHandoff'
 
 /**
  * Lets the user connect Sphere Wallet (same iframe postMessage flow as
- * PayPage) so their quest progress is tied to a wallet identity instead of
- * just this browser. Lives inside QuestPanel, right below the quest list.
+ * PayPage) so their connected address is shown alongside their progress.
+ * Progress itself always lives in this browser's localStorage (see
+ * useQuests.ts) — connecting a wallet here doesn't merge in progress from
+ * another device, it just labels this browser's progress with an address.
+ * Lives inside QuestPanel, right below the quest list.
  */
 export default function WalletConnect() {
   const { walletAddress, walletStatus, walletError, connectWallet, canConnectWallet } = useQuestsContext()
 
-  const isBusy = walletStatus === 'connecting' || walletStatus === 'linking'
+  const isBusy = walletStatus === 'connecting'
 
   // Plain link by default so it's clickable immediately; upgraded in-place
-  // (usually within a tick) to a link carrying this session's tokens, so
-  // the points earned in *this* tab actually follow into the Sphere iframe
-  // instead of starting from a fresh, empty anonymous user there. See
+  // (usually within a tick) to a link carrying this browser's quest state,
+  // so the points earned in *this* tab actually follow into the Sphere
+  // iframe instead of starting from a fresh, empty state there. See
   // sessionHandoff.ts for why this hand-carry is necessary at all.
   const [openInSphereUrl, setOpenInSphereUrl] = useState(() => sphereAgentUrl(window.location.href))
 
@@ -39,7 +42,7 @@ export default function WalletConnect() {
           <Check size={14} strokeWidth={2.5} />
         </span>
         <span className="wallet-connect-text">
-          Progress synced to <strong>@{walletAddress}</strong>
+          Wallet connected: <strong>@{walletAddress}</strong>
         </span>
       </div>
     )
@@ -51,8 +54,7 @@ export default function WalletConnect() {
         <button type="button" className="wallet-connect-btn" onClick={connectWallet} disabled={isBusy}>
           {isBusy ? <Loader2 size={14} className="wallet-connect-spin" /> : <Wallet size={14} />}
           {walletStatus === 'connecting' && 'Connecting…'}
-          {walletStatus === 'linking' && 'Saving progress…'}
-          {(walletStatus === 'idle' || walletStatus === 'error') && 'Connect Wallet to save progress'}
+          {(walletStatus === 'idle' || walletStatus === 'error') && 'Connect Wallet'}
         </button>
         {walletStatus === 'error' && walletError && <p className="wallet-connect-error">{walletError}</p>}
       </div>

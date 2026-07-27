@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
 import { QUEST_MAP, QUESTS, getTier, type Quest, type QuestId } from '../config/quests'
 import { connectSphereWallet, isInsideSphere } from '../lib/sphereConnect'
-import { consumeHandoff } from '../lib/sessionHandoff'
+import { consumeHandoff, readLocalState, writeLocalState, type LocalQuestState } from '../lib/sessionHandoff'
 
 interface QuestState {
   completed: QuestId[]
@@ -16,65 +15,32 @@ function isQuestId(value: unknown): value is QuestId {
   return typeof value === 'string' && value in QUEST_MAP
 }
 
-interface QuestStateRow {
-  total_points: number
-  completed_quest_ids: string[]
-  used_assets: string[]
-  wallet_address: string | null
-}
+export type WalletStatus = 'idle' | 'connecting' | 'linked' | 'error'
 
-interface QuestMutationRow {
-  newly_unlocked: string[]
-  total_points: number
-}
-
-interface LinkWalletRow {
-  total_points: number
-  completed_quest_ids: string[]
-  used_assets: string[]
-  wallet_address: string | null
-}
-
-export type WalletStatus = 'idle' | 'connecting' | 'linking' | 'linked' | 'error'
-
-/**
- * Ensures there's a signed-in Supabase user for this browser and returns
- * their id. Uses anonymous auth so points can persist per-device without
- * putting a login wall in front of the generator — this can later be
- * upgraded to email/wallet-linked accounts (Supabase supports converting an
- * anonymous user into a permanent one via supabase.auth.updateUser /
- * linkIdentity without losing their existing rows, since the user_id stays
- * the same).
- */
-async function ensureSignedIn(): Promise<void> {
-  // If the URL is carrying a session handed off from a different storage
-  // partition (see sessionHandoff.ts — this is how "Open in Sphere Wallet
-  // to save progress" survives the standalone-tab -> Sphere-iframe jump),
-  // resume that session before deciding whether we need a fresh anonymous
-  // one. This must run first, or the mismatched-points bug comes right
-  // back: getSession() below would find nothing in this partition and
-  // sign in as a brand new (empty) anonymous user instead.
-  const resumed = await consumeHandoff()
-  if (resumed) return
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (session?.user) return
-
-  const { error } = await supabase.auth.signInAnonymously()
-  if (error) throw error
+function totalPointsFor(completed: QuestId[]): number {
+  return completed.reduce((sum, id) => sum + (QUEST_MAP[id]?.points ?? 0), 0)
 }
 
 /**
  * Shared quest & points state for the payment-link generator.
  *
- * Progress now lives in Supabase (profiles / quest_completions /
- * asset_usage), keyed off an anonymous-auth user id persisted in
- * localStorage by supabase-js. See QuestsContext for how this is shared
- * across the app — the public shape returned here is unchanged from the
- * previous localStorage-only version, so consumers don't need to change.
+ * Local-only: progress lives entirely in this browser's localStorage (see
+ * sessionHandoff.ts for the storage key + shape). There used to be a
+ * Supabase-backed version of this hook (profiles / quest_completions /
+ * asset_usage tables, anonymous auth per browser — see MIGRATION_NOTES.md
+ * for the historical writeup), but that required a live Supabase project.
+ * Now that the project's been torn down, this reverts to the simpler
+ * client-only model: points are just the sum of `QUEST_MAP[id].points` over
+ * whatever quest ids are recorded as completed, same idea the old RPCs used
+ * server-side, just computed here instead.
+ *
+ * The public shape returned here is unchanged from the Supabase version, so
+ * QuestsContext / QuestWidget / QuestPanel / BulkRequestView /
+ * ExpressRequestView all keep working with zero changes. The one behavior
+ * change: `connectWallet` now just remembers the connected address in this
+ * browser (localStorage) for display — it no longer merges progress from
+ * another device/profile, since that merge lived in the now-deleted
+ * database. If you bring a backend back later, that's the piece to restore.
  */
 export function useQuests() {
   const [state, setState] = useState<QuestState>(EMPTY_STATE)
@@ -85,36 +51,26 @@ export function useQuests() {
   const [walletStatus, setWalletStatus] = useState<WalletStatus>('idle')
   const [walletError, setWalletError] = useState('')
 
-  // Bootstrap: sign in (or resume session), then load current state.
+  // Bootstrap: resume a handed-off state (see sessionHandoff.ts) if this
+  // page was opened via the "Open in Sphere Wallet" link, otherwise just
+  // read whatever's already in this browser's localStorage.
   useEffect(() => {
     let cancelled = false
 
     async function bootstrap() {
-      try {
-        await ensureSignedIn()
-        // Idempotent — safe to call every load, cheap no-op after the first.
-        await supabase.rpc('ensure_profile')
+      await consumeHandoff()
+      if (cancelled) return
 
-        const { data, error } = await supabase.rpc('get_my_quest_state').single<QuestStateRow>()
-        if (error) throw error
-        if (cancelled || !data) return
+      const saved = readLocalState()
+      const completed = saved.completed.filter(isQuestId)
 
-        setState({
-          completed: data.completed_quest_ids.filter(isQuestId),
-          usedAssets: data.used_assets,
-        })
-        setTotalPoints(data.total_points)
-        if (data.wallet_address) {
-          setWalletAddress(data.wallet_address)
-          setWalletStatus('linked')
-        }
-      } catch (err) {
-        // Fail open: the UI keeps working, it just won't reflect saved
-        // progress until the next successful sync (e.g. next reload).
-        console.error('Failed to load quest state from Supabase', err)
-      } finally {
-        if (!cancelled) setIsReady(true)
+      setState({ completed, usedAssets: saved.usedAssets })
+      setTotalPoints(totalPointsFor(completed))
+      if (saved.walletAddress) {
+        setWalletAddress(saved.walletAddress)
+        setWalletStatus('linked')
       }
+      setIsReady(true)
     }
 
     bootstrap()
@@ -123,48 +79,40 @@ export function useQuests() {
     }
   }, [])
 
-  const unlock = useCallback((ids: QuestId[]) => {
-    if (ids.length === 0) return
-
-    setState((prev) => {
-      const completedSet = new Set(prev.completed)
-      const newlyUnlocked: QuestId[] = []
-
-      for (const id of ids) {
-        if (!completedSet.has(id)) {
-          completedSet.add(id)
-          newlyUnlocked.push(id)
-        }
-      }
-
-      if (newlyUnlocked.length === 0) return prev
-
-      setToastQueue((queue) => [...queue, ...newlyUnlocked.map((id) => QUEST_MAP[id])])
-      return { ...prev, completed: Array.from(completedSet) }
-    })
+  const persist = useCallback((next: QuestState, wallet: string | null) => {
+    writeLocalState({ completed: next.completed, usedAssets: next.usedAssets, walletAddress: wallet })
   }, [])
+
+  const unlock = useCallback(
+    (ids: QuestId[]) => {
+      if (ids.length === 0) return
+
+      setState((prev) => {
+        const completedSet = new Set(prev.completed)
+        const newlyUnlocked: QuestId[] = []
+
+        for (const id of ids) {
+          if (!completedSet.has(id)) {
+            completedSet.add(id)
+            newlyUnlocked.push(id)
+          }
+        }
+
+        if (newlyUnlocked.length === 0) return prev
+
+        setToastQueue((queue) => [...queue, ...newlyUnlocked.map((id) => QUEST_MAP[id])])
+        const next = { ...prev, completed: Array.from(completedSet) }
+        setTotalPoints(totalPointsFor(next.completed))
+        persist(next, walletAddress)
+        return next
+      })
+    },
+    [persist, walletAddress],
+  )
 
   const completeQuest = useCallback(
     (id: QuestId) => {
-      // Optimistic unlock so completing a quest still feels instant. This is
-      // safe to reconcile against below even if it fires more than once,
-      // because complete_quest() is idempotent server-side
-      // (ON CONFLICT DO NOTHING keyed on user_id + quest_id).
       unlock([id])
-
-      supabase
-        .rpc('complete_quest', { p_quest_id: id })
-        .single<QuestMutationRow>()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error(`complete_quest('${id}') failed`, error)
-            return
-          }
-          if (data) {
-            unlock(data.newly_unlocked.filter(isQuestId))
-            setTotalPoints(data.total_points)
-          }
-        })
     },
     [unlock],
   )
@@ -176,24 +124,29 @@ export function useQuests() {
 
       setState((prev) => {
         if (prev.usedAssets.includes(normalized)) return prev
-        return { ...prev, usedAssets: [...prev.usedAssets, normalized] }
-      })
 
-      supabase
-        .rpc('record_asset_used', { p_asset: normalized })
-        .single<QuestMutationRow>()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error(`record_asset_used('${normalized}') failed`, error)
-            return
-          }
-          if (data) {
-            unlock(data.newly_unlocked.filter(isQuestId))
-            setTotalPoints(data.total_points)
-          }
-        })
+        const usedAssets = [...prev.usedAssets, normalized]
+        const completedSet = new Set(prev.completed)
+        const newlyUnlocked: QuestId[] = []
+
+        // Multi-asset quest completion is derived here (used to be a server
+        // RPC keyed off the same rule: 2+ distinct assets ever used).
+        if (usedAssets.length >= 2 && !completedSet.has('multi_asset')) {
+          completedSet.add('multi_asset')
+          newlyUnlocked.push('multi_asset')
+        }
+
+        const next: QuestState = { completed: Array.from(completedSet), usedAssets }
+
+        if (newlyUnlocked.length > 0) {
+          setToastQueue((queue) => [...queue, ...newlyUnlocked.map((id) => QUEST_MAP[id])])
+        }
+        setTotalPoints(totalPointsFor(next.completed))
+        persist(next, walletAddress)
+        return next
+      })
     },
-    [unlock],
+    [persist, walletAddress],
   )
 
   const dismissToast = useCallback(() => {
@@ -202,13 +155,15 @@ export function useQuests() {
 
   /**
    * Connects to Sphere Wallet through the same postMessage iframe bridge
-   * PayPage uses (see src/lib/sphereConnect.ts), then links the returned
-   * identity to this profile via link_wallet_identity() so quest progress
-   * follows the wallet instead of resetting per device/browser. Only works
-   * when this page is loaded inside Sphere's iframe — callers should check
-   * `canConnectWallet` first and, if false, point the user at
-   * sphereAgentUrl() to open the app inside Sphere (same fallback PayPage
-   * shows for payments).
+   * PayPage uses (see src/lib/sphereConnect.ts) and remembers the address in
+   * this browser's localStorage. Only works when this page is loaded inside
+   * Sphere's iframe — callers should check `canConnectWallet` first and, if
+   * false, point the user at sphereAgentUrl() to open the app inside Sphere
+   * (same fallback PayPage shows for payments).
+   *
+   * Note: this no longer merges quest history from another device/profile —
+   * that required the Supabase backend this app previously had. It's purely
+   * "remember which wallet this browser belongs to" now.
    */
   const connectWallet = useCallback(async () => {
     setWalletStatus('connecting')
@@ -216,29 +171,19 @@ export function useQuests() {
 
     try {
       const address = await connectSphereWallet('Link quest progress to your wallet')
-
-      setWalletStatus('linking')
-      const { data, error } = await supabase
-        .rpc('link_wallet_identity', { p_wallet_address: address })
-        .single<LinkWalletRow>()
-
-      if (error) throw error
-      if (!data) throw new Error('No response from link_wallet_identity')
-
-      setState({
-        completed: data.completed_quest_ids.filter(isQuestId),
-        usedAssets: data.used_assets,
-      })
-      setTotalPoints(data.total_points)
-      setWalletAddress(data.wallet_address)
+      setWalletAddress(address)
       setWalletStatus('linked')
+      setState((prev) => {
+        persist(prev, address)
+        return prev
+      })
     } catch (err) {
       console.error('connectWallet failed', err)
       const msg = err instanceof Error ? err.message : String(err)
       setWalletError(msg.match(/reject|cancel|denied/i) ? 'Connection cancelled.' : msg)
       setWalletStatus('error')
     }
-  }, [])
+  }, [persist])
 
   const completedIds = new Set(state.completed)
 
@@ -251,9 +196,9 @@ export function useQuests() {
     recordAssetUsed,
     activeToast: toastQueue[0] ?? null,
     dismissToast,
-    /** New — existing consumers can ignore this; useful if you want a loading skeleton on the badge. */
+    /** Existing consumers can ignore this; useful if you want a loading skeleton on the badge. */
     isReady,
-    /** Wallet-linked progress (see MIGRATION_NOTES.md → "upgrading from anonymous to a real account"). */
+    /** Wallet connected to this browser (local-only; see doc comment above). */
     walletAddress,
     walletStatus,
     walletError,
