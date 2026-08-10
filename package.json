@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@unicitylabs/sphere-sdk": "latest",
+    "@unicitylabs/sphere-sdk": "^0.14.2",
     "lucide-react": "^1.22.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
