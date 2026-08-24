@@ -89,8 +89,6 @@ Errors are pattern-matched to give a specific message for rejected transactions,
 
 A points system tracks how a user interacts with the generator. It's local-only — everything lives in this browser's `localStorage`, no backend required.
 
-> This app previously stored progress in Supabase (anonymous auth, Postgres, RLS-protected tables — see `MIGRATION_NOTES.md` for that design). That project has since been torn down, and progress reverted to being purely client-side. The old migration SQL is kept in `supabase/migrations/` for reference only — it isn't applied or required to run the app today.
-
 - **Quests are defined client-side** in `src/config/quests.ts` (id, title, description, and point value). `src/hooks/useQuests.ts` tracks which quest ids are completed and recomputes the total as the sum of `points` over those ids — never an incremented counter, so it can't drift. Current quests cover generating a first link, copying a link, completing a bulk batch, generating a large batch, using more than one asset, and trying both request modes.
 - **Per-browser, not per-account.** There's no login and no server — progress is tied to whatever browser/device generated it, saved under a single `localStorage` key (`uct-pay-link:quest-state`).
 - **Wallet connect is a local label, not a sync.** From inside Sphere's iframe, a user can connect their Sphere Wallet; the app remembers that address alongside this browser's progress and shows it in the quest panel. It does **not** merge in history from another device — that would need a backend to look up profiles by wallet, which this app no longer has.
@@ -153,11 +151,6 @@ uct-pay-link/
 │           ├── BulkRequestView.tsx    Batch payment link generator
 │           ├── csvUtils.ts            Parsing, validation, CSV template/export helpers
 │           └── types.ts               Shared types for bulk rows and validation
-├── supabase/                          Historical only — not used by the app currently (see note above)
-│   └── migrations/
-│       ├── 0001_points_system.sql     Quests, profiles, completions, RLS, RPCs
-│       ├── 0002_wallet_link.sql       Wallet-linked profiles and merge logic
-│       └── 0003_share_quest.sql       Share-related quest support
 ├── index.html
 ├── package.json
 ├── tsconfig.json

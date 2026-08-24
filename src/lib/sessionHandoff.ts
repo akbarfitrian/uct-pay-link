@@ -20,10 +20,6 @@
  * fragments are never sent to any server (unlike query params), so this
  * never shows up in Vercel/Sphere logs, only in the browser's own address
  * bar, and only for the few seconds until consumeHandoff() strips it.
- *
- * This used to carry Supabase session tokens instead (see
- * MIGRATION_NOTES.md) back when progress lived in a Supabase project. Now
- * that progress is local-only, it just carries the state itself.
  */
 
 export interface LocalQuestState {

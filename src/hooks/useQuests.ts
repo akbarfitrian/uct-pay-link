@@ -24,23 +24,17 @@ function totalPointsFor(completed: QuestId[]): number {
 /**
  * Shared quest & points state for the payment-link generator.
  *
- * Local-only: progress lives entirely in this browser's localStorage (see
- * sessionHandoff.ts for the storage key + shape). There used to be a
- * Supabase-backed version of this hook (profiles / quest_completions /
- * asset_usage tables, anonymous auth per browser — see MIGRATION_NOTES.md
- * for the historical writeup), but that required a live Supabase project.
- * Now that the project's been torn down, this reverts to the simpler
- * client-only model: points are just the sum of `QUEST_MAP[id].points` over
- * whatever quest ids are recorded as completed, same idea the old RPCs used
- * server-side, just computed here instead.
+ * Local-only, no backend: progress lives entirely in this browser's
+ * localStorage (see sessionHandoff.ts for the storage key + shape). Points
+ * are just the sum of `QUEST_MAP[id].points` over whatever quest ids are
+ * recorded as completed — never an incremented counter, so it can't drift.
  *
- * The public shape returned here is unchanged from the Supabase version, so
- * QuestsContext / QuestWidget / QuestPanel / BulkRequestView /
- * ExpressRequestView all keep working with zero changes. The one behavior
- * change: `connectWallet` now just remembers the connected address in this
- * browser (localStorage) for display — it no longer merges progress from
- * another device/profile, since that merge lived in the now-deleted
- * database. If you bring a backend back later, that's the piece to restore.
+ * The public shape returned here: `quests`, `completedIds`, `totalPoints`,
+ * `tier`, `completeQuest`, `recordAssetUsed`, `activeToast`, `dismissToast`,
+ * `isReady`, plus wallet-label fields below. `connectWallet` just remembers
+ * the connected address in this browser (localStorage) for display — it
+ * does not merge progress from another device, since there's no backend to
+ * look that up against.
  */
 export function useQuests() {
   const [state, setState] = useState<QuestState>(EMPTY_STATE)
@@ -161,9 +155,9 @@ export function useQuests() {
    * false, point the user at sphereAgentUrl() to open the app inside Sphere
    * (same fallback PayPage shows for payments).
    *
-   * Note: this no longer merges quest history from another device/profile —
-   * that required the Supabase backend this app previously had. It's purely
-   * "remember which wallet this browser belongs to" now.
+   * Note: this does not merge quest history from another device/profile —
+   * there's no backend to look that up against. It's purely "remember which
+   * wallet this browser belongs to" now.
    */
   const connectWallet = useCallback(async () => {
     setWalletStatus('connecting')
