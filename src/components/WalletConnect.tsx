@@ -1,39 +1,18 @@
 import { Check, Loader2, Wallet } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { useQuestsContext } from '../context/QuestsContext'
-import { sphereAgentUrl } from '../lib/sphereConnect'
-import { withHandoff } from '../lib/sessionHandoff'
 
 /**
- * Lets the user connect Sphere Wallet (same iframe postMessage flow as
- * PayPage) so their connected address is shown alongside their progress.
- * Progress itself always lives in this browser's localStorage (see
- * useQuests.ts) — connecting a wallet here doesn't merge in progress from
- * another device, it just labels this browser's progress with an address.
- * Lives inside QuestPanel, right below the quest list.
+ * Lets the user connect Sphere Wallet — clicking opens a real wallet popup
+ * window (see src/lib/sphereConnect.ts) so their connected address is shown
+ * alongside their progress. Progress itself always lives in this browser's
+ * localStorage (see useQuests.ts) — connecting a wallet here doesn't merge
+ * in progress from another device, it just labels this browser's progress
+ * with an address. Lives inside QuestPanel, right below the quest list.
  */
 export default function WalletConnect() {
-  const { walletAddress, walletStatus, walletError, connectWallet, canConnectWallet } = useQuestsContext()
+  const { walletAddress, walletStatus, walletError, connectWallet } = useQuestsContext()
 
   const isBusy = walletStatus === 'connecting'
-
-  // Plain link by default so it's clickable immediately; upgraded in-place
-  // (usually within a tick) to a link carrying this browser's quest state,
-  // so the points earned in *this* tab actually follow into the Sphere
-  // iframe instead of starting from a fresh, empty state there. See
-  // sessionHandoff.ts for why this hand-carry is necessary at all.
-  const [openInSphereUrl, setOpenInSphereUrl] = useState(() => sphereAgentUrl(window.location.href))
-
-  useEffect(() => {
-    if (canConnectWallet) return // already inside Sphere, this link isn't shown
-    let cancelled = false
-    withHandoff(window.location.href).then((urlWithSession) => {
-      if (!cancelled) setOpenInSphereUrl(sphereAgentUrl(urlWithSession))
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [canConnectWallet])
 
   if (walletStatus === 'linked' && walletAddress) {
     return (
@@ -48,28 +27,14 @@ export default function WalletConnect() {
     )
   }
 
-  if (canConnectWallet) {
-    return (
-      <div className="wallet-connect">
-        <button type="button" className="wallet-connect-btn" onClick={connectWallet} disabled={isBusy}>
-          {isBusy ? <Loader2 size={14} className="wallet-connect-spin" /> : <Wallet size={14} />}
-          {walletStatus === 'connecting' && 'Connecting…'}
-          {(walletStatus === 'idle' || walletStatus === 'error') && 'Connect Wallet'}
-        </button>
-        {walletStatus === 'error' && walletError && <p className="wallet-connect-error">{walletError}</p>}
-      </div>
-    )
-  }
-
-  // Not inside Sphere's iframe — same fallback PayPage uses for payments:
-  // point the user at the Sphere agent URL, which reopens this page inside
-  // Sphere so the iframe connect flow above becomes available.
   return (
     <div className="wallet-connect">
-      <a href={openInSphereUrl} target="_blank" rel="noreferrer" className="wallet-connect-btn wallet-connect-link">
-        <Wallet size={14} />
-        Connect Wallet
-      </a>
+      <button type="button" className="wallet-connect-btn" onClick={connectWallet} disabled={isBusy}>
+        {isBusy ? <Loader2 size={14} className="wallet-connect-spin" /> : <Wallet size={14} />}
+        {walletStatus === 'connecting' && 'Connecting…'}
+        {(walletStatus === 'idle' || walletStatus === 'error') && 'Connect Wallet'}
+      </button>
+      {walletStatus === 'error' && walletError && <p className="wallet-connect-error">{walletError}</p>}
     </div>
   )
 }

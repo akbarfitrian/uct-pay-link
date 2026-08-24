@@ -54,8 +54,8 @@ export default function QuestPanel({ onClose }: QuestPanelProps) {
 
       <p className="quest-panel-footnote">
         {isWalletLinked
-          ? 'Progress is saved to your wallet — it will follow you across devices.'
-          : 'Progress is saved on this device only. Connect your wallet to keep it.'}
+          ? 'Progress is saved on this device only — your wallet address is just a label here.'
+          : 'Progress is saved on this device only. Connect your wallet to label it with your address.'}
       </p>
     </div>
   )

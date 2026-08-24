@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import type { ConnectClient } from '@unicitylabs/sphere-sdk/connect'
 import { COINS } from '../config/coins'
 import { getCoinPrice } from '../services/coingeckoService'
-import { createSphereClient, isInsideSphere, sphereAgentUrl } from '../lib/sphereConnect'
+import { connectSpherePopup, describeSphereError, type SphereClient } from '../lib/sphereConnect'
 
 interface SphereAsset {
   coinId: string
@@ -13,7 +12,7 @@ interface SphereAsset {
 
 type PayStatus = 'idle' | 'connecting' | 'querying' | 'sending' | 'success' | 'error'
 
-async function getAssetInfo(client: ConnectClient, symbol: string) {
+async function getAssetInfo(client: SphereClient, symbol: string) {
   try {
     const result = await client.query<SphereAsset[] | { assets: SphereAsset[] }>('sphere_getAssets')
     const assets: SphereAsset[] = Array.isArray(result)
@@ -66,8 +65,6 @@ export default function PayPage() {
 
   const isValidLink = to.length > 0 && parseFloat(amount) > 0
   const displayAmount = parseFloat(amount).toLocaleString('en-US', { maximumFractionDigits: 8 })
-  const insideSphere = isInsideSphere()
-  const sphereUrl = sphereAgentUrl(window.location.href)
   const selectedCoin = COINS[coin]
 
   useEffect(() => {
@@ -86,14 +83,17 @@ export default function PayPage() {
   }, [coin, isValidLink])
 
   const handlePay = async () => {
-    if (!insideSphere) return
     setStatus('connecting')
     setErrorMsg('')
 
-    try {
-      const client = createSphereClient('Payment via Unicity payment link')
+    // Opens a Sphere Wallet popup (see src/lib/sphereConnect.ts). Kept open
+    // for the whole flow — query + intent both talk to the same session —
+    // and closed via disconnect() once we're done, success or not.
+    let result: Awaited<ReturnType<typeof connectSpherePopup>> | null = null
 
-      await client.connect()
+    try {
+      result = await connectSpherePopup('Payment via Unicity payment link')
+      const client = result.client
 
       setStatus('querying')
       const asset = await getAssetInfo(client, coin)
@@ -102,21 +102,22 @@ export default function PayPage() {
       const decimals = asset.decimals ?? 8
       const amountBase = toBaseUnitsString(amount, decimals)
 
-      const result = await client.intent('send', {
+      const sendResult = await client.intent('send', {
         to: `@${to}`,
         coinId: asset.coinId,
         amount: amountBase,
       })
 
-      setTxInfo(JSON.stringify(result, null, 2))
+      setTxInfo(JSON.stringify(sendResult, null, 2))
       setStatus('success')
     } catch (err: unknown) {
       setStatus('error')
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.match(/reject|cancel|denied/i)) setErrorMsg('Transaction cancelled.')
-      else if (msg.match(/insufficient|balance/i)) setErrorMsg('Insufficient ' + coin + ' balance.')
+      if (msg.match(/insufficient|balance/i)) setErrorMsg('Insufficient ' + coin + ' balance.')
       else if (msg.match(/network|mismatch/i)) setErrorMsg('Wrong network — switch to Unicity Testnet2.')
-      else setErrorMsg(msg)
+      else setErrorMsg(describeSphereError(err))
+    } finally {
+      if (result) await result.disconnect()
     }
   }
 
@@ -245,31 +246,9 @@ export default function PayPage() {
         )}
 
         {/* Action Buttons */}
-        {insideSphere && (
-          <button className="btn btn-primary btn-pay" onClick={handlePay} disabled={isLoading}>
-            {getButtonText()}
-          </button>
-        )}
-
-        {!insideSphere && (
-          <>
-            <div className="alert alert-warning">
-              <strong>Open this link in Sphere Wallet to pay.</strong> Click below — Sphere will load this payment page.
-            </div>
-            <a href={sphereUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
-              Open in Sphere Wallet
-            </a>
-            <div className="sphere-link-section">
-              <p className="sphere-link-label">Or copy Sphere link manually:</p>
-              <div className="copy-box">
-                <span className="copy-text">{sphereUrl}</span>
-                <button className="copy-btn" onClick={() => navigator.clipboard.writeText(sphereUrl)}>
-                  Copy
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+        <button className="btn btn-primary btn-pay" onClick={handlePay} disabled={isLoading}>
+          {getButtonText()}
+        </button>
 
         <Link to="/app" className="btn btn-secondary">
           ← Back

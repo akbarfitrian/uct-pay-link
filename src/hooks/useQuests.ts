@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { QUEST_MAP, QUESTS, getTier, type Quest, type QuestId } from '../config/quests'
-import { connectSphereWallet, isInsideSphere } from '../lib/sphereConnect'
-import { consumeHandoff, readLocalState, writeLocalState, type LocalQuestState } from '../lib/sessionHandoff'
+import { connectSphereWalletAddress, describeSphereError } from '../lib/sphereConnect'
+import { readLocalState, writeLocalState, type LocalQuestState } from '../lib/questStorage'
 
 interface QuestState {
   completed: QuestId[]
@@ -25,16 +25,17 @@ function totalPointsFor(completed: QuestId[]): number {
  * Shared quest & points state for the payment-link generator.
  *
  * Local-only, no backend: progress lives entirely in this browser's
- * localStorage (see sessionHandoff.ts for the storage key + shape). Points
+ * localStorage (see questStorage.ts for the storage key + shape). Points
  * are just the sum of `QUEST_MAP[id].points` over whatever quest ids are
  * recorded as completed — never an incremented counter, so it can't drift.
  *
  * The public shape returned here: `quests`, `completedIds`, `totalPoints`,
  * `tier`, `completeQuest`, `recordAssetUsed`, `activeToast`, `dismissToast`,
- * `isReady`, plus wallet-label fields below. `connectWallet` just remembers
- * the connected address in this browser (localStorage) for display — it
- * does not merge progress from another device, since there's no backend to
- * look that up against.
+ * `isReady`, plus wallet-label fields below. `connectWallet` opens a Sphere
+ * Wallet popup (see sphereConnect.ts) and just remembers the connected
+ * address in this browser (localStorage) for display — it does not merge
+ * progress from another device, since there's no backend to look that up
+ * against.
  */
 export function useQuests() {
   const [state, setState] = useState<QuestState>(EMPTY_STATE)
@@ -45,32 +46,18 @@ export function useQuests() {
   const [walletStatus, setWalletStatus] = useState<WalletStatus>('idle')
   const [walletError, setWalletError] = useState('')
 
-  // Bootstrap: resume a handed-off state (see sessionHandoff.ts) if this
-  // page was opened via the "Open in Sphere Wallet" link, otherwise just
-  // read whatever's already in this browser's localStorage.
+  // Bootstrap: read whatever's already in this browser's localStorage.
   useEffect(() => {
-    let cancelled = false
+    const saved = readLocalState()
+    const completed = saved.completed.filter(isQuestId)
 
-    async function bootstrap() {
-      await consumeHandoff()
-      if (cancelled) return
-
-      const saved = readLocalState()
-      const completed = saved.completed.filter(isQuestId)
-
-      setState({ completed, usedAssets: saved.usedAssets })
-      setTotalPoints(totalPointsFor(completed))
-      if (saved.walletAddress) {
-        setWalletAddress(saved.walletAddress)
-        setWalletStatus('linked')
-      }
-      setIsReady(true)
+    setState({ completed, usedAssets: saved.usedAssets })
+    setTotalPoints(totalPointsFor(completed))
+    if (saved.walletAddress) {
+      setWalletAddress(saved.walletAddress)
+      setWalletStatus('linked')
     }
-
-    bootstrap()
-    return () => {
-      cancelled = true
-    }
+    setIsReady(true)
   }, [])
 
   const persist = useCallback((next: QuestState, wallet: string | null) => {
@@ -148,12 +135,9 @@ export function useQuests() {
   }, [])
 
   /**
-   * Connects to Sphere Wallet through the same postMessage iframe bridge
-   * PayPage uses (see src/lib/sphereConnect.ts) and remembers the address in
-   * this browser's localStorage. Only works when this page is loaded inside
-   * Sphere's iframe — callers should check `canConnectWallet` first and, if
-   * false, point the user at sphereAgentUrl() to open the app inside Sphere
-   * (same fallback PayPage shows for payments).
+   * Opens a Sphere Wallet popup window (see src/lib/sphereConnect.ts) and
+   * remembers the returned address in this browser's localStorage. Works
+   * from any normal tab — no iframe embedding required.
    *
    * Note: this does not merge quest history from another device/profile —
    * there's no backend to look that up against. It's purely "remember which
@@ -164,7 +148,7 @@ export function useQuests() {
     setWalletError('')
 
     try {
-      const address = await connectSphereWallet('Link quest progress to your wallet')
+      const address = await connectSphereWalletAddress('Link quest progress to your wallet')
       setWalletAddress(address)
       setWalletStatus('linked')
       setState((prev) => {
@@ -173,8 +157,7 @@ export function useQuests() {
       })
     } catch (err) {
       console.error('connectWallet failed', err)
-      const msg = err instanceof Error ? err.message : String(err)
-      setWalletError(msg.match(/reject|cancel|denied/i) ? 'Connection cancelled.' : msg)
+      setWalletError(describeSphereError(err))
       setWalletStatus('error')
     }
   }, [persist])
@@ -197,8 +180,6 @@ export function useQuests() {
     walletStatus,
     walletError,
     connectWallet,
-    /** Whether connectWallet() can actually run right now (i.e. we're inside Sphere's iframe). */
-    canConnectWallet: isInsideSphere(),
   }
 }
 

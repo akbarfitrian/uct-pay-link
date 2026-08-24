@@ -1,77 +1,56 @@
-import {
-  ConnectClient,
-  SPHERE_NETWORKS,
-  type ConnectTransport,
-  type SphereConnectMessage,
-  isSphereConnectMessage,
-} from '@unicitylabs/sphere-sdk/connect'
+import { autoConnect, type AutoConnectResult } from '@unicitylabs/sphere-sdk/connect/browser'
+import { SPHERE_NETWORKS } from '@unicitylabs/sphere-sdk/connect'
 
+/** Sphere Wallet's own site — the popup opens `${SPHERE_ORIGIN}/connect`, not a copy of this app. */
 export const SPHERE_ORIGIN = 'https://sphere.unicity.network'
-export const SPHERE_AGENT_BASE = `${SPHERE_ORIGIN}/agents/custom`
+
+/** The connected client type handed back by connectSpherePopup(), for typing callers like PayPage. */
+export type SphereClient = AutoConnectResult['client']
 
 /**
- * True when this page is running inside Sphere's own iframe (i.e. someone
- * opened it via the "Open in Sphere Wallet" agent flow). Sphere-connect
- * calls only work in this context — postMessage has a parent to talk to.
+ * Opens a real Sphere Wallet popup window and connects to it over
+ * postMessage — Sphere Connect's "popup" transport, forced explicitly here
+ * rather than auto-detected (this app previously used the "iframe"
+ * transport, which required being embedded inside Sphere's own site first;
+ * popup mode works from a normal standalone tab, which is how this app
+ * actually runs).
+ *
+ * Resolves once the user approves the connection in the popup. Callers that
+ * need to keep talking to the wallet afterwards (queries, intents — see
+ * PayPage.tsx) should hold onto `.client` and call `.disconnect()`
+ * themselves when finished, which also closes the popup window. Callers
+ * that only need the identity should disconnect immediately after reading
+ * it (see connectSphereWalletAddress below).
+ *
+ * Throws if the popup is blocked, the user closes it before approving, or
+ * they reject the connection.
  */
-export function isInsideSphere(): boolean {
-  return window !== window.parent
-}
-
-/** Sphere agent URL that, when opened, loads `targetUrl` inside Sphere's iframe. */
-export function sphereAgentUrl(targetUrl: string = window.location.href): string {
-  return `${SPHERE_AGENT_BASE}?url=${encodeURIComponent(targetUrl)}`
-}
-
-/**
- * postMessage-based transport used whenever *we* are the iframe child and
- * Sphere Wallet is the parent frame. This is the only transport this app
- * needs today (Sphere is always the host) — same object shape the SDK
- * expects from a browser-extension transport, just backed by
- * window.parent.postMessage instead of an extension bridge.
- */
-export function createIframeTransport(): ConnectTransport {
-  return {
-    send(msg: SphereConnectMessage) {
-      window.parent.postMessage(msg, '*')
-    },
-    onMessage(handler: (msg: SphereConnectMessage) => void) {
-      const fn = (e: MessageEvent) => {
-        const fromParent = e.source === window.parent || e.source === window.top
-        if (fromParent && isSphereConnectMessage(e.data)) handler(e.data)
-      }
-      window.addEventListener('message', fn)
-      return () => window.removeEventListener('message', fn)
-    },
-    destroy() {},
-  }
-}
-
-/** Creates a ConnectClient wired to the iframe transport, ready to `.connect()` / `.query()` / `.intent()`. */
-export function createSphereClient(dappDescription: string) {
-  return new ConnectClient({
-    transport: createIframeTransport(),
+export async function connectSpherePopup(dappDescription: string): Promise<AutoConnectResult> {
+  return autoConnect({
     dapp: {
       name: 'UCT Pay Link',
       description: dappDescription,
       url: window.location.origin,
     },
     network: SPHERE_NETWORKS.testnet2,
+    walletUrl: SPHERE_ORIGIN,
+    forceTransport: 'popup',
   })
 }
 
 /**
- * `client.connect()` resolves with a wallet `identity`. The SDK's exact
- * shape isn't pinned down here, so this accepts whatever it hands back —
- * a bare string, or an object exposing a nametag/address/id — and returns
- * a single display/storage string (e.g. "alice" or "0xabc...").
+ * `client.connect()` resolves with a wallet `identity` (`PublicIdentity`:
+ * `chainPubkey`, optional `directAddress`/`nametag`). This prefers the
+ * human-readable nametag, with a couple of defensive fallbacks in case the
+ * shape drifts, and returns a single display/storage string.
  */
 export function extractIdentityAddress(identity: unknown): string {
   if (typeof identity === 'string') return identity.trim()
 
   if (identity && typeof identity === 'object') {
     const candidate = identity as Record<string, unknown>
-    const value = candidate.nametag ?? candidate.address ?? candidate.id ?? candidate.publicKey
+    const value =
+      candidate.nametag ?? candidate.directAddress ?? candidate.chainPubkey ?? candidate.address ?? candidate.id
     if (typeof value === 'string') return value.trim()
   }
 
@@ -79,23 +58,39 @@ export function extractIdentityAddress(identity: unknown): string {
 }
 
 /**
- * Connects to Sphere Wallet (must be called from inside Sphere's iframe,
- * see isInsideSphere()) and returns the linked identity as a plain string.
- * Throws if not inside Sphere, if the user rejects the connection, or if
- * Sphere doesn't hand back a usable identity.
+ * Connects via the wallet popup purely to read the identity, then
+ * disconnects right away (closing the popup) — for flows that just need to
+ * label local progress with an address rather than hold a live session open
+ * for further queries/intents. Throws if the popup is blocked/closed, the
+ * user rejects, or the wallet doesn't hand back a usable identity.
  */
-export async function connectSphereWallet(dappDescription: string): Promise<string> {
-  if (!isInsideSphere()) {
-    throw new Error('Open this page inside Sphere Wallet to connect.')
+export async function connectSphereWalletAddress(dappDescription: string): Promise<string> {
+  const result = await connectSpherePopup(dappDescription)
+  try {
+    const address = extractIdentityAddress(result.connection.identity)
+    if (!address) throw new Error('Sphere Wallet did not return a usable identity.')
+    return address
+  } finally {
+    await result.disconnect()
   }
+}
 
-  const client = createSphereClient(dappDescription)
-  const { identity } = await client.connect()
-  const address = extractIdentityAddress(identity)
-
-  if (!address) {
-    throw new Error('Sphere Wallet did not return a usable identity.')
+/**
+ * Turns a raw connect/intent error into a short, user-facing message.
+ * Shared by PayPage (intents) and useQuests (wallet-address connect) so the
+ * two flows read the same failure the same way.
+ */
+export function describeSphereError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (msg.match(/popup blocker|failed to open wallet popup/i)) {
+    return 'Wallet popup was blocked — allow popups for this site and try again.'
   }
-
-  return address
+  if (msg.match(/did not respond in time/i)) {
+    return 'Wallet popup did not respond in time. Please try again.'
+  }
+  if (msg.match(/closed before connecting/i)) {
+    return 'Wallet popup was closed before connecting.'
+  }
+  if (msg.match(/reject|cancel|denied/i)) return 'Connection cancelled.'
+  return msg
 }

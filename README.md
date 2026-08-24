@@ -42,35 +42,35 @@ For generating many payment links at once:
 
 ## Sphere Network Integration
 
-Payments are executed entirely through Sphere Wallet on the Unicity Testnet2 network, using `ConnectClient` from `@unicitylabs/sphere-sdk/connect`.
+Payments are executed entirely through Sphere Wallet on the Unicity Testnet2 network, using `autoConnect()` from `@unicitylabs/sphere-sdk/connect/browser`, forced to its **popup** transport.
 
 ### Transport
 
-The app is opened inside Sphere Wallet's own iframe (via its `agents/custom` agent URL), rather than through a browser extension. Connection uses a `postMessage`-based transport between the page and its parent Sphere frame:
+Sphere Connect supports three transports — iframe, browser extension, and popup. This app uses **popup**: clicking Connect Wallet / Pay opens a real wallet popup window (`https://sphere.unicity.network/connect?origin=<this app's origin>`) and talks to it over `postMessage`. Unlike the iframe transport, this app is always the top-level tab — it never needs to be embedded inside Sphere's own site first, so it works from a normal standalone URL:
 
 ```typescript
-const client = new ConnectClient({
-  transport: createIframeTransport(), // window.parent.postMessage bridge
+const result = await autoConnect({
   dapp: { name: 'UCT Pay Link', description: '...', url: window.location.origin },
   network: SPHERE_NETWORKS.testnet2,
+  walletUrl: 'https://sphere.unicity.network',
+  forceTransport: 'popup',
 })
+// result.client — same query()/intent() API regardless of transport
+// result.disconnect() — closes the popup window
 ```
 
-`isInsideSphere()` (`window !== window.parent`) determines whether the current page can talk to Sphere at all. When it can't — for example, someone opened the link directly rather than through Sphere — the app instead shows an "Open in Sphere Wallet" link that reloads the same page inside Sphere's iframe via:
-
-```
-https://sphere.unicity.network/agents/custom?url=<encoded target URL>
-```
+If the popup is blocked, closed before connecting, or the user rejects the connection, `autoConnect()` throws — surfaced in the UI as a short, specific message (see `describeSphereError()` in `src/lib/sphereConnect.ts`).
 
 ### Payment flow
 
-`PayPage.tsx` drives the transaction once a valid link is opened inside Sphere:
+`PayPage.tsx` drives the transaction:
 
-1. `client.connect()` — establishes the connection and returns the wallet identity
+1. `connectSpherePopup()` — opens the wallet popup and connects, returning the client and the wallet identity
 2. `client.query('sphere_getAssets')` — resolves the requested asset symbol (e.g. `UCT`) to Sphere's internal `coinId` and decimal precision, falling back to a UTF-8 hex encoding of the symbol if the asset isn't found
 3. `client.intent('send', { to, coinId, amount })` — submits the transfer, with the amount converted to base units according to the asset's decimals
+4. `result.disconnect()` — closes the popup, called whether the payment succeeded or failed
 
-Errors are pattern-matched to give a specific message for rejected transactions, insufficient balance, or a network mismatch.
+Errors are pattern-matched to give a specific message for rejected transactions, insufficient balance, a network mismatch, or a blocked/closed popup.
 
 ### Payment link format
 
@@ -91,8 +91,7 @@ A points system tracks how a user interacts with the generator. It's local-only 
 
 - **Quests are defined client-side** in `src/config/quests.ts` (id, title, description, and point value). `src/hooks/useQuests.ts` tracks which quest ids are completed and recomputes the total as the sum of `points` over those ids — never an incremented counter, so it can't drift. Current quests cover generating a first link, copying a link, completing a bulk batch, generating a large batch, using more than one asset, and trying both request modes.
 - **Per-browser, not per-account.** There's no login and no server — progress is tied to whatever browser/device generated it, saved under a single `localStorage` key (`uct-pay-link:quest-state`).
-- **Wallet connect is a local label, not a sync.** From inside Sphere's iframe, a user can connect their Sphere Wallet; the app remembers that address alongside this browser's progress and shows it in the quest panel. It does **not** merge in history from another device — that would need a backend to look up profiles by wallet, which this app no longer has.
-- **Cross-context handoff.** Because Sphere embeds the app in a third-party iframe, browsers partition `localStorage` separately for the standalone tab and the embedded view, which would otherwise make a visitor's progress look reset inside Sphere. The app carries the current quest state itself across via a single-use URL fragment (never sent to any server) so the same progress follows the user into Sphere.
+- **Wallet connect is a local label, not a sync.** Connect Wallet opens the same popup transport described above; the app remembers the returned address alongside this browser's progress and shows it in the quest panel. It does **not** merge in history from another device — that would need a backend to look up profiles by wallet, which this app no longer has.
 
 ## Light Mode and Night Mode
 
@@ -118,7 +117,7 @@ uct-pay-link/
 ├── src/
 │   ├── App.tsx                        Router, navbar, ThemeToggle, QuestWidget
 │   ├── App.css                        All styling, including light/dark CSS variables
-│   ├── main.tsx                       Entry point; consumes session handoff before app renders
+│   ├── main.tsx                       Entry point
 │   ├── components/
 │   │   ├── Footer.tsx                 Shared footer
 │   │   ├── Logo.tsx                   App logo
@@ -137,8 +136,8 @@ uct-pay-link/
 │   │   ├── useQuests.ts               localStorage-backed quest state, wallet label
 │   │   └── useTheme.ts                Theme state and localStorage persistence
 │   ├── lib/
-│   │   ├── sphereConnect.ts           Sphere iframe transport, ConnectClient factory
-│   │   └── sessionHandoff.ts          Carries quest state across iframe storage partitions
+│   │   ├── sphereConnect.ts           Sphere popup transport, ConnectClient factory
+│   │   └── questStorage.ts            localStorage read/write for quest state
 │   ├── services/
 │   │   └── coingeckoService.ts        Live USD price lookup via CoinGecko
 │   └── pages/
@@ -154,7 +153,7 @@ uct-pay-link/
 ├── index.html
 ├── package.json
 ├── tsconfig.json
-├── vercel.json                        SPA rewrites; frame-ancestors allowed so Sphere can embed the app
+├── vercel.json                        SPA rewrites
 └── vite.config.ts
 ```
 
@@ -184,7 +183,7 @@ npm run build
 
 ## Deployment
 
-The app deploys as a static SPA (`vercel.json` handles client-side routing rewrites). Because Sphere Wallet loads it inside an iframe via its agent URL, response headers explicitly allow framing (`X-Frame-Options: ALLOWALL`, `Content-Security-Policy: frame-ancestors *`).
+The app deploys as a static SPA (`vercel.json` handles client-side routing rewrites). It's a normal standalone site — no special framing headers needed, since Sphere Wallet connections happen through a popup window rather than embedding this app in an iframe.
 
 ## How to Test
 
@@ -193,8 +192,7 @@ The app deploys as a static SPA (`vercel.json` handles client-side routing rewri
 3. Claim a nametag (e.g. `@testalice`)
 4. Request test tokens from the Unicity Testnet2 faucet
 5. Create a payment link in this app
-6. Open the link — if not already inside Sphere, use the "Open in Sphere Wallet" button
-7. Click **Pay** and confirm the transaction in the Sphere popup
+6. Open the link and click **Pay** — a Sphere Wallet popup opens for you to connect and confirm the transaction
 
 ## Future Development Ideas
 
